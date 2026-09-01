@@ -1,3 +1,4 @@
 build/
+build-xcode/
 tools/
 shaders/compiled/
