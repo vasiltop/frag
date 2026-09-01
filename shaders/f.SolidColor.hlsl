@@ -1,11 +1,8 @@
-struct Input {};
-
-struct Output {
-	float4 Color: SV_Target0;
+struct Input {
+	float4 pos: SV_Position;
+	float4 color: TEXCOORD1;
 };
 
-Output main(Input input) {
-	Output output;
-	output.Color = float4(1.0f, 0.0f, 0.0f, 1.0f);
-	return output;
+float4 main(Input input): SV_Target0 {
+	return input.color;
 }

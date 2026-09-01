@@ -90,22 +90,15 @@ b32 CreatePipeline(State *state) {
       SDL_GPUVertexAttribute{
           .location = 0,
           .buffer_slot = 0,
-          .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT,
+          .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
           .offset = 0,
       },
       SDL_GPUVertexAttribute{
           .location = 1,
           .buffer_slot = 0,
-          .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT,
-          .offset = 1 * sizeof(f32),
-      },
-      SDL_GPUVertexAttribute{
-          .location = 2,
-          .buffer_slot = 0,
-          .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT,
-          .offset = 2 * sizeof(f32),
-      },
-  };
+          .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+          .offset = sizeof(f32) * 3,
+      }};
 
   SDL_GPUColorTargetDescription gpu_color_descs[] = {
       SDL_GPUColorTargetDescription{.format = SDL_GetGPUSwapchainTextureFormat(

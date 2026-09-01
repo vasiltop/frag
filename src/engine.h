@@ -15,6 +15,7 @@ struct State {
 
 struct Vertex {
   f32 x, y, z;
+  f32 r, g, b, a;
 };
 
 SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename);
