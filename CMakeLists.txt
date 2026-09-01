@@ -21,8 +21,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "vendor/*.cpp" "vendor/*.c")
 
 add_executable(frag ${SOURCES})
+
+target_include_directories(frag PRIVATE vendor)
 
 target_link_libraries(frag PRIVATE SDL3::SDL3 glm::glm)
