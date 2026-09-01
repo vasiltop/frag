@@ -21,4 +21,5 @@ xcode: shaders
     cmake -B build-xcode -S . -G "Xcode" -DCMAKE_BUILD_TYPE=Debug
     @mkdir -p build-xcode/Debug/shaders
     @cp -R build/shaders/ build-xcode/Debug/shaders/
+    @cp -R assets/ build-xcode/Debug/assets/
     open build-xcode/*.xcodeproj

@@ -55,30 +55,55 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   }
 
   Vertex cube_vertices[] = {
-      // Front face
-      {-0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f}, // 0
-      {0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f},  // 1
-      {0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f},   // 2
-      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f},  // 3
-      // Back face
-      {-0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f}, // 4
-      {0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f},  // 5
-      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f},   // 6
-      {-0.5f, 0.5f, -0.5f, 0.2f, 0.3f, 0.4f, 1.0f}   // 7
+      // Front face (Z = 0.5)
+      {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
+      {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
+      {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
+      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},  // Top-Left
+
+      // Back face (Z = -0.5)
+      {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
+      {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-Right
+      {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
+      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},   // Top-Left
+
+      // Left face (X = -0.5)
+      {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
+      {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
+      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
+      {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},  // Top-Left
+
+      // Right face (X = 0.5)
+      {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
+      {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-Right
+      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
+      {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},   // Top-Left
+
+      // Top face (Y = 0.5)
+      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
+      {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},   // Bottom-Right
+      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
+      {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f}, // Top-Left
+
+      // Bottom face (Y = -0.5)
+      {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
+      {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
+      {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
+      {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f}   // Top-Left
   };
 
-  Uint32 cube_indices[] = {// Front
-                           0, 1, 2, 2, 3, 0,
-                           // Right
-                           1, 5, 6, 6, 2, 1,
-                           // Back
-                           5, 4, 7, 7, 6, 5,
-                           // Left
-                           4, 0, 3, 3, 7, 4,
-                           // Top
-                           3, 2, 6, 6, 7, 3,
-                           // Bottom
-                           4, 5, 1, 1, 0, 4};
+  u32 cube_indices[] = {// Front face
+                        0, 1, 2, 2, 3, 0,
+                        // Back face
+                        4, 5, 6, 6, 7, 4,
+                        // Left face
+                        8, 9, 10, 10, 11, 8,
+                        // Right face
+                        12, 13, 14, 14, 15, 12,
+                        // Top face
+                        16, 17, 18, 18, 19, 16,
+                        // Bottom face
+                        20, 21, 22, 22, 23, 20};
 
   if (!CreateVertexBuffer(state, cube_vertices)) {
     return SDL_APP_FAILURE;
@@ -93,6 +118,22 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   state->view_mat =
       glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                   glm::vec3(0.0f, 1.0f, 0.0f));
+
+  SDL_GPUSamplerCreateInfo sampler_info{
+      .min_filter = SDL_GPU_FILTER_LINEAR,
+      .mag_filter = SDL_GPU_FILTER_LINEAR,
+      .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+      .address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+      .address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+      .address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+  };
+
+  state->sampler = SDL_CreateGPUSampler(state->device, &sampler_info);
+
+  state->texture = LoadTexture(state, Str8Lit("./assets/tex.png"));
+  if (!state->texture) {
+    return SDL_APP_FAILURE;
+  }
 
   return SDL_APP_CONTINUE;
 }
@@ -224,6 +265,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   glm::mat4 model_mat =
       glm::rotate(glm::mat4(1.0f), state->angle, glm::vec3(0.0f, 1.0f, 0.0f));
   glm::mat4 mvp = state->proj_mat * state->view_mat * model_mat;
+
+  SDL_GPUTextureSamplerBinding binding{.texture = state->texture,
+                                       .sampler = state->sampler};
+
+  SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
 
   SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
   SDL_DrawGPUIndexedPrimitives(render_pass, 36, 1, 0, 0, 0);
