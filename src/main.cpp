@@ -38,6 +38,18 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
+  SDL_GPUTextureCreateInfo depth_info{
+      .type = SDL_GPU_TEXTURETYPE_2D,
+      .format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+      .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+      .width = width,
+      .height = height,
+      .layer_count_or_depth = 1,
+      .num_levels = 1,
+  };
+
+  state->depth_texture = SDL_CreateGPUTexture(state->device, &depth_info);
+
   if (!CreatePipeline(state)) {
     return SDL_APP_FAILURE;
   }
@@ -112,15 +124,26 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     return SDL_APP_FAILURE;
   }
 
-  SDL_GPUColorTargetInfo color_target_info = {
+  SDL_GPUColorTargetInfo color_target_info{
       .texture = swapchain_texture,
       .clear_color = SDL_FColor{0.4f, 0.6f, 0.9f, 1.0f},
       .load_op = SDL_GPU_LOADOP_CLEAR,
       .store_op = SDL_GPU_STOREOP_STORE,
   };
 
-  auto *render_pass =
-      SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
+  SDL_GPUDepthStencilTargetInfo depth_target_info{
+      .texture = state->depth_texture,
+      .clear_depth = 1.0f,
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_DONT_CARE,
+      .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
+      .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE,
+      .cycle = true,
+      .clear_stencil = 0,
+  };
+
+  auto *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info,
+                                             1, &depth_target_info);
 
   SDL_BindGPUGraphicsPipeline(render_pass, state->pipeline);
 

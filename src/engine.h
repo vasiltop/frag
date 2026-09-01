@@ -12,6 +12,7 @@ struct State {
   SDL_GPUGraphicsPipeline *pipeline;
   SDL_GPUBuffer *vertex_buffer;
   SDL_GPUBuffer *index_buffer;
+  SDL_GPUTexture *depth_texture;
   mem::Arena *perm_arena;
   glm::mat4 proj_mat;
   glm::mat4 view_mat;

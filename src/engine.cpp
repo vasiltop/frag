@@ -121,9 +121,20 @@ b32 CreatePipeline(State *state) {
           SDL_GPURasterizerState{
               .fill_mode = SDL_GPU_FILLMODE_FILL,
           },
-      .target_info = SDL_GPUGraphicsPipelineTargetInfo{
-          .color_target_descriptions = gpu_color_descs,
-          .num_color_targets = ArrayCount(gpu_color_descs)}};
+      .depth_stencil_state =
+          {
+              .compare_op = SDL_GPU_COMPAREOP_LESS,
+              .enable_depth_test = true,
+              .enable_depth_write = true,
+          },
+      .target_info =
+          SDL_GPUGraphicsPipelineTargetInfo{
+              .color_target_descriptions = gpu_color_descs,
+              .num_color_targets = ArrayCount(gpu_color_descs),
+              .depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+              .has_depth_stencil_target = true,
+          },
+  };
 
   state->pipeline =
       SDL_CreateGPUGraphicsPipeline(state->device, &pipeline_info);
