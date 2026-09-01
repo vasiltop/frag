@@ -3,6 +3,7 @@
 #include "./base/string.h"
 #include "./base/types.h"
 #include <SDL3/SDL.h>
+#include <glm/glm.hpp>
 #include <span>
 
 struct State {
@@ -11,6 +12,9 @@ struct State {
   SDL_GPUGraphicsPipeline *pipeline;
   SDL_GPUBuffer *vertex_buffer;
   mem::Arena *perm_arena;
+  glm::mat4 proj_mat;
+  glm::mat4 view_mat;
+  f32 angle;
 };
 
 struct Vertex {

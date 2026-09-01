@@ -47,11 +47,14 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
     return nullptr;
   }
 
-  SDL_GPUShaderCreateInfo shader_info{.code_size = file_size,
-                                      .code = static_cast<u8 *>(code),
-                                      .entrypoint = (char *)entrypoint.str,
-                                      .format = format,
-                                      .stage = stage};
+  SDL_GPUShaderCreateInfo shader_info{
+      .code_size = file_size,
+      .code = static_cast<u8 *>(code),
+      .entrypoint = (char *)entrypoint.str,
+      .format = format,
+      .stage = stage,
+      .num_uniform_buffers = 1,
+  };
 
   auto *shader = SDL_CreateGPUShader(device, &shader_info);
   if (!shader) {

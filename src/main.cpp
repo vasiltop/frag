@@ -2,16 +2,22 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include "base/mem.h"
 #include <SDL3/SDL_main.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+constexpr auto NUM_VERTICES = 3;
+constexpr auto width = 1280;
+constexpr auto height = 720;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_Log("Init");
 
   auto perm_arena = mem::ArenaAlloc();
-  auto state = mem::Push<State>(perm_arena, nullptr, nullptr, nullptr, nullptr,
-                                perm_arena);
+  auto state = mem::Push<State>(perm_arena, State{.perm_arena = perm_arena});
+
   *appstate = state;
 
-  state->window = SDL_CreateWindow("frag", 1280, 720, 0);
+  state->window = SDL_CreateWindow("frag", width, height, 0);
 
   if (!state->window) {
     SDL_Log("Failed to create window: %s", SDL_GetError());
@@ -44,6 +50,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   if (!CreateVertexBuffer(state, vertices)) {
     return SDL_APP_FAILURE;
   }
+
+  state->proj_mat = glm::perspective(glm::radians(45.0f),
+                                     (f32)width / (f32)height, 0.1f, 100.f);
+  state->view_mat =
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                  glm::vec3(0.0f, 1.0f, 0.0f));
 
   return SDL_APP_CONTINUE;
 }
@@ -93,7 +105,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
                            ArrayCount(vertex_buffers));
 
-  SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
+  state->angle += 0.01f;
+  glm::mat4 model_mat =
+      glm::rotate(glm::mat4(1.0f), state->angle, glm::vec3(0.0f, 1.0f, 0.0f));
+  glm::mat4 mvp = state->proj_mat * state->view_mat * model_mat;
+
+  SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
+
+  SDL_DrawGPUPrimitives(render_pass, NUM_VERTICES, 1, 0, 0);
 
   SDL_EndGPURenderPass(render_pass);
   SDL_SubmitGPUCommandBuffer(command_buffer);

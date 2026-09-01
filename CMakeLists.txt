@@ -14,8 +14,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL3)
 
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG 1.0.1
+)
+FetchContent_MakeAvailable(glm)
+
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(frag ${SOURCES})
 
-target_link_libraries(frag PRIVATE SDL3::SDL3)
+target_link_libraries(frag PRIVATE SDL3::SDL3 glm::glm)
