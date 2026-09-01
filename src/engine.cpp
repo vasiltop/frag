@@ -68,13 +68,13 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
 }
 
 b32 CreatePipeline(State *state) {
-  auto *vertex_shader = LoadShader(state->device, Str8Lit("v.OnlyPosition"));
+  auto *vertex_shader = LoadShader(state->device, Str8Lit("v"));
   if (!vertex_shader) {
     SDL_Log("Could not create vertex shader!");
     return false;
   }
 
-  auto *fragment_shader = LoadShader(state->device, Str8Lit("f.SolidColor"));
+  auto *fragment_shader = LoadShader(state->device, Str8Lit("f"));
   if (!vertex_shader) {
     SDL_Log("Could not create vertex shader!");
     return false;
