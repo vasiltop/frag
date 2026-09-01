@@ -98,16 +98,77 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+  auto state = static_cast<State *>(appstate);
   switch (event->type) {
   case SDL_EVENT_QUIT:
     return SDL_APP_SUCCESS;
-  default:
-    return SDL_APP_CONTINUE;
+  case SDL_EVENT_MOUSE_BUTTON_DOWN:
+    if (event->button.button == SDL_BUTTON_LEFT) {
+      SDL_SetWindowRelativeMouseMode(state->window, true);
+      state->mouse_captured = true;
+    }
+    break;
+
+  case SDL_EVENT_KEY_DOWN:
+    if (event->key.key == SDLK_ESCAPE) {
+      SDL_SetWindowRelativeMouseMode(state->window, false);
+      state->mouse_captured = false;
+    }
+    break;
+  case SDL_EVENT_MOUSE_MOTION:
+    if (state->mouse_captured) {
+      float sensitivity = 0.003f;
+
+      state->cam_yaw -= event->motion.xrel * sensitivity;
+      state->cam_pitch -=
+          event->motion.yrel * sensitivity; // Inverted Y so up looks up
+
+      state->cam_pitch = glm::clamp(state->cam_pitch, -1.57f, 1.57f);
+    }
+    break;
   }
+
+  return SDL_APP_CONTINUE;
+}
+
+void Movement(State *state, f32 dt) {
+  glm::vec3 front;
+  front.x = cos(state->cam_pitch) * sin(state->cam_yaw);
+  front.y = sin(state->cam_pitch);
+  front.z = cos(state->cam_pitch) * cos(state->cam_yaw);
+  front = glm::normalize(front);
+
+  glm::vec3 right =
+      glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+  auto *keys = SDL_GetKeyboardState(NULL);
+  f32 velocity = 2.5f * dt;
+
+  if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP])
+    state->cam_pos += front * velocity;
+  if (keys[SDL_SCANCODE_S] || keys[SDL_SCANCODE_DOWN])
+    state->cam_pos -= front * velocity;
+  if (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT])
+    state->cam_pos -= right * velocity;
+  if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT])
+    state->cam_pos += right * velocity;
+
+  state->view_mat = glm::lookAt(state->cam_pos, state->cam_pos + front,
+                                glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
   auto state = static_cast<State *>(appstate);
+
+  u64 current_tick = SDL_GetTicks();
+  f32 delta_time{};
+
+  if (state->last_tick > 0) {
+    delta_time = (f32)(current_tick - state->last_tick) / 1000.f;
+  }
+  state->last_tick = current_tick;
+
+  Movement(state, delta_time);
 
   auto *command_buffer = SDL_AcquireGPUCommandBuffer(state->device);
 

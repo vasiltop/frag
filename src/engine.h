@@ -17,6 +17,11 @@ struct State {
   glm::mat4 proj_mat;
   glm::mat4 view_mat;
   f32 angle;
+  b32 mouse_captured;
+  glm::vec3 cam_pos;
+  f32 cam_pitch;
+  f32 cam_yaw;
+  u64 last_tick;
 };
 
 struct Vertex {
