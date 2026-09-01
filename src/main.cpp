@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-constexpr auto NUM_VERTICES = 3;
 constexpr auto width = 1280;
 constexpr auto height = 720;
 
@@ -43,11 +42,37 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  Vertex vertices[] = {{-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f},
-                       {0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f},
-                       {0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f}};
+  Vertex cube_vertices[] = {
+      // Front face
+      {-0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f}, // 0
+      {0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f},  // 1
+      {0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f},   // 2
+      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f},  // 3
+      // Back face
+      {-0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f}, // 4
+      {0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f},  // 5
+      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f},   // 6
+      {-0.5f, 0.5f, -0.5f, 0.2f, 0.3f, 0.4f, 1.0f}   // 7
+  };
 
-  if (!CreateVertexBuffer(state, vertices)) {
+  Uint32 cube_indices[] = {// Front
+                           0, 1, 2, 2, 3, 0,
+                           // Right
+                           1, 5, 6, 6, 2, 1,
+                           // Back
+                           5, 4, 7, 7, 6, 5,
+                           // Left
+                           4, 0, 3, 3, 7, 4,
+                           // Top
+                           3, 2, 6, 6, 7, 3,
+                           // Bottom
+                           4, 5, 1, 1, 0, 4};
+
+  if (!CreateVertexBuffer(state, cube_vertices)) {
+    return SDL_APP_FAILURE;
+  }
+
+  if (!CreateIndexBuffer(state, cube_indices)) {
     return SDL_APP_FAILURE;
   }
 
@@ -105,14 +130,19 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
                            ArrayCount(vertex_buffers));
 
+  SDL_GPUBufferBinding index_buffers[] = {
+      SDL_GPUBufferBinding{.buffer = state->index_buffer, .offset = 0}};
+
+  SDL_BindGPUIndexBuffer(render_pass, index_buffers,
+                         SDL_GPU_INDEXELEMENTSIZE_32BIT);
+
   state->angle += 0.01f;
   glm::mat4 model_mat =
       glm::rotate(glm::mat4(1.0f), state->angle, glm::vec3(0.0f, 1.0f, 0.0f));
   glm::mat4 mvp = state->proj_mat * state->view_mat * model_mat;
 
   SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
-
-  SDL_DrawGPUPrimitives(render_pass, NUM_VERTICES, 1, 0, 0);
+  SDL_DrawGPUIndexedPrimitives(render_pass, 36, 1, 0, 0, 0);
 
   SDL_EndGPURenderPass(render_pass);
   SDL_SubmitGPUCommandBuffer(command_buffer);

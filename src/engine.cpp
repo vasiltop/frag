@@ -139,17 +139,7 @@ b32 CreatePipeline(State *state) {
   return true;
 }
 
-b32 CreateVertexBuffer(State *state, std::span<Vertex> vertices) {
-  u32 size = vertices.size() * sizeof(Vertex);
-  SDL_GPUBufferCreateInfo vb_info{.usage = SDL_GPU_BUFFERUSAGE_VERTEX,
-                                  .size = size};
-
-  state->vertex_buffer = SDL_CreateGPUBuffer(state->device, &vb_info);
-  if (!state->vertex_buffer) {
-    SDL_Log("Could not create vertex buffer: %s", SDL_GetError());
-    return false;
-  }
-
+b32 CopyToBuffer(State *state, void *data, u32 size, SDL_GPUBuffer *buf) {
   SDL_GPUTransferBufferCreateInfo tb_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = size};
 
@@ -159,16 +149,16 @@ b32 CreateVertexBuffer(State *state, std::span<Vertex> vertices) {
     return false;
   }
 
-  auto *data =
-      (Vertex *)SDL_MapGPUTransferBuffer(state->device, transfer_buffer, false);
+  auto *tb_data =
+      SDL_MapGPUTransferBuffer(state->device, transfer_buffer, false);
 
-  if (!data) {
+  if (!tb_data) {
     SDL_Log("Couldn't map transfer buffer: %s", SDL_GetError());
     SDL_ReleaseGPUTransferBuffer(state->device, transfer_buffer);
     return false;
   }
 
-  SDL_memcpy(data, vertices.data(), size);
+  SDL_memcpy(tb_data, data, size);
   SDL_UnmapGPUTransferBuffer(state->device, transfer_buffer);
 
   auto *upload_buf = SDL_AcquireGPUCommandBuffer(state->device);
@@ -181,8 +171,8 @@ b32 CreateVertexBuffer(State *state, std::span<Vertex> vertices) {
 
   SDL_GPUTransferBufferLocation buf_loc{.transfer_buffer = transfer_buffer,
                                         .offset = 0};
-  SDL_GPUBufferRegion buf_reg{
-      .buffer = state->vertex_buffer, .offset = 0, .size = size};
+
+  SDL_GPUBufferRegion buf_reg{.buffer = buf, .offset = 0, .size = size};
 
   SDL_UploadToGPUBuffer(copy_pass, &buf_loc, &buf_reg, false);
 
@@ -194,6 +184,39 @@ b32 CreateVertexBuffer(State *state, std::span<Vertex> vertices) {
   }
 
   SDL_ReleaseGPUTransferBuffer(state->device, transfer_buffer);
+
+  return true;
+}
+
+b32 CreateVertexBuffer(State *state, std::span<Vertex> vertices) {
+  u32 size = vertices.size() * sizeof(Vertex);
+  SDL_GPUBufferCreateInfo vb_info{.usage = SDL_GPU_BUFFERUSAGE_VERTEX,
+                                  .size = size};
+
+  state->vertex_buffer = SDL_CreateGPUBuffer(state->device, &vb_info);
+  if (!state->vertex_buffer) {
+    SDL_Log("Could not create vertex buffer: %s", SDL_GetError());
+    return false;
+  }
+
+  CopyToBuffer(state, vertices.data(), size, state->vertex_buffer);
+
+  return true;
+}
+
+b32 CreateIndexBuffer(State *state, std::span<u32> indices) {
+  u32 size = indices.size() * sizeof(u32);
+  SDL_GPUBufferCreateInfo ib_info{.usage = SDL_GPU_BUFFERUSAGE_INDEX,
+                                  .size = size};
+
+  state->index_buffer = SDL_CreateGPUBuffer(state->device, &ib_info);
+
+  if (!state->index_buffer) {
+    SDL_Log("Could not create index buffer: %s", SDL_GetError());
+    return false;
+  }
+
+  CopyToBuffer(state, indices.data(), size, state->index_buffer);
 
   return true;
 }
