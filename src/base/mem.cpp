@@ -112,7 +112,7 @@ void *Push(Arena *arena, u64 size, u64 align) {
 void *PushZero(Arena *arena, u64 size, u64 align) {
   void *p = Push(arena, size, align);
   if (p)
-    memset(p, 0, size);
+    SDL_memset(p, 0, size);
   return p;
 }
 

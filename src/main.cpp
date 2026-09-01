@@ -1,19 +1,14 @@
-#include <SDL3/SDL.h>
+#include "engine.h"
 #define SDL_MAIN_USE_CALLBACKS
 #include "base/mem.h"
 #include <SDL3/SDL_main.h>
-
-struct State {
-  SDL_Window *window;
-  SDL_GPUDevice *device;
-  mem::Arena *perm_arena;
-};
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_Log("Init");
 
   auto perm_arena = mem::ArenaAlloc();
-  auto state = mem::Push<State>(perm_arena, nullptr, nullptr, perm_arena);
+  auto state = mem::Push<State>(perm_arena, nullptr, nullptr, nullptr, nullptr,
+                                perm_arena);
   *appstate = state;
 
   state->window = SDL_CreateWindow("frag", 1280, 720, 0);
@@ -35,6 +30,20 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   if (!SDL_ClaimWindowForGPUDevice(state->device, state->window)) {
     SDL_Log("Couldn't claim window for GPU device: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+
+  if (!CreatePipeline(state)) {
+    return SDL_APP_FAILURE;
+  }
+
+  Vertex vertices[]{
+      Vertex{-1.0f, -1.0f, 0.0f},
+      Vertex{1.0f, -1.0f, 0.0f},
+      Vertex{0.0f, 1.0f, 0.0f},
+  };
+
+  if (!CreateVertexBuffer(state, vertices)) {
     return SDL_APP_FAILURE;
   }
 
@@ -79,6 +88,17 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   auto *render_pass =
       SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
+
+  SDL_BindGPUGraphicsPipeline(render_pass, state->pipeline);
+
+  SDL_GPUBufferBinding vertex_buffers[] = {
+      SDL_GPUBufferBinding{.buffer = state->vertex_buffer, .offset = 0}};
+
+  SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
+                           ArrayCount(vertex_buffers));
+
+  SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
+
   SDL_EndGPURenderPass(render_pass);
   SDL_SubmitGPUCommandBuffer(command_buffer);
 

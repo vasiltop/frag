@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./base_types.h"
+#include "./types.h"
 #include <new>
 #include <utility>
 
@@ -23,6 +23,11 @@ void *PushZero(Arena *arena, u64 size, u64 align = 16);
 void PopTo(Arena *arena, u64 pos);
 void Pop(Arena *arena, u64 amount);
 void Clear(Arena *arena);
+
+template <typename T> T *PushCount(Arena *arena, u64 count) {
+  T *res = (T *)Push(arena, sizeof(T) * count);
+  return res;
+}
 
 template <typename T, typename... Args> T *Push(Arena *arena, Args &&...args) {
   void *res = Push(arena, sizeof(T), alignof(T));
