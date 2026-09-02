@@ -1,8 +1,13 @@
 #pragma once
 
 #include "./base/string.h"
+#include "thing.h"
 #include <SDL3/SDL.h>
-#include <span>
+
+constexpr auto width = 1280;
+constexpr auto height = 720;
+
+namespace renderer {
 
 struct Renderer {
   SDL_GPUDevice *device;
@@ -14,3 +19,9 @@ struct Renderer {
 
 SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename);
 b32 CreatePipeline(Renderer *state);
+b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
+           glm::mat4 view_mat);
+
+b32 Init(Renderer *renderer);
+
+}; // namespace renderer

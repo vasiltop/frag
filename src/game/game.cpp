@@ -29,7 +29,7 @@ priv void Movement(State *state, f32 dt) {
                                 glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-Vertex cube_vertices[] = {
+gpu::Vertex cube_vertices[] = {
     // Front face (Z = 0.5)
     {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
     {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
@@ -87,7 +87,7 @@ void Init(State *state) {
   auto texture =
       LoadTexture(state->renderer->device, Str8Lit("./assets/tex.png"));
   auto vb = CreateVertexBuffer(state->renderer->device, cube_vertices);
-  auto ib = CreateIndexBuffer(state->renderer->device, cube_indices);
+  auto ib = gpu::CreateIndexBuffer(state->renderer->device, cube_indices);
 
   cube_ref = thing::Add(state->things, thing::Kind::Cube);
   auto &cube = thing::Get(state->things, cube_ref);
@@ -116,6 +116,35 @@ void Update(State *state, f32 dt) {
 
   auto &cube2 = thing::Get(state->things, cube_ref2);
   cube2.rot.y -= 0.5f * dt;
+}
+
+void HandleEvent(State *state, SDL_Event *event) {
+  switch (event->type) {
+  case SDL_EVENT_MOUSE_BUTTON_DOWN:
+    if (event->button.button == SDL_BUTTON_LEFT) {
+      SDL_SetWindowRelativeMouseMode(state->renderer->window, true);
+      state->mouse_captured = true;
+    }
+    break;
+
+  case SDL_EVENT_KEY_DOWN:
+    if (event->key.key == SDLK_ESCAPE) {
+      SDL_SetWindowRelativeMouseMode(state->renderer->window, false);
+      state->mouse_captured = false;
+    }
+    break;
+  case SDL_EVENT_MOUSE_MOTION:
+    if (state->mouse_captured) {
+      float sensitivity = 0.003f;
+
+      state->cam_yaw -= event->motion.xrel * sensitivity;
+      state->cam_pitch -=
+          event->motion.yrel * sensitivity; // Inverted Y so up looks up
+
+      state->cam_pitch = glm::clamp(state->cam_pitch, -1.57f, 1.57f);
+    }
+    break;
+  }
 }
 
 }; // namespace game

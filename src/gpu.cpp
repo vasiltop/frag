@@ -1,5 +1,6 @@
 #include "gpu.h"
 
+namespace gpu {
 SDL_GPUTransferBuffer *TransferData(SDL_GPUDevice *device, void *data,
                                     u32 size_bytes) {
   SDL_GPUTransferBufferCreateInfo transfer_info{
@@ -95,3 +96,4 @@ SDL_GPUBuffer *CreateIndexBuffer(SDL_GPUDevice *device,
 
   return index_buffer;
 }
+}; // namespace gpu

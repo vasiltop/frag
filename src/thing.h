@@ -1,3 +1,5 @@
+#pragma once
+
 #include "./base/base.h"
 #include "asset.h"
 #include <glm/glm.hpp>

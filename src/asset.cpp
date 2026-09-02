@@ -32,7 +32,7 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, String8 filename) {
   auto *texture = SDL_CreateGPUTexture(device, &texture_info);
   u32 size_bytes = tex_width * tex_height * 4;
 
-  auto transfer = TransferData(device, tex, size_bytes);
+  auto transfer = gpu::TransferData(device, tex, size_bytes);
 
   if (!transfer)
     return nullptr;
@@ -51,7 +51,7 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, String8 filename) {
       .d = 1,
   };
 
-  auto upload = BeginUpload(device);
+  auto upload = gpu::BeginUpload(device);
   if (!upload.pass)
     return nullptr;
 

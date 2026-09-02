@@ -1,4 +1,5 @@
 #include "thing.h"
+
 namespace thing {
 
 priv s32 Deref(Things *things, Ref ref) {

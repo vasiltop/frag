@@ -1,7 +1,10 @@
 #include "renderer.h"
 #include "base/mem.h"
 #include "gpu.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
+namespace renderer {
 SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
   SDL_GPUShaderStage stage;
 
@@ -90,7 +93,7 @@ b32 CreatePipeline(Renderer *renderer) {
   SDL_GPUVertexBufferDescription vb_desc[] = {
       SDL_GPUVertexBufferDescription{
           .slot = 0,
-          .pitch = sizeof(Vertex),
+          .pitch = sizeof(gpu::Vertex),
           .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
           .instance_step_rate = 0,
       },
@@ -162,3 +165,143 @@ b32 CreatePipeline(Renderer *renderer) {
 
   return true;
 }
+
+b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
+           glm::mat4 view_mat) {
+  auto *command_buffer = SDL_AcquireGPUCommandBuffer(renderer->device);
+
+  if (!command_buffer) {
+    SDL_Log("Couldn't acquire GPU command buffer: %s", SDL_GetError());
+    return false;
+  }
+
+  SDL_GPUTexture *swapchain_texture;
+  if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, renderer->window,
+                                             &swapchain_texture, nullptr,
+                                             nullptr)) {
+    SDL_Log("Couldn't acquire swapchain texture: %s", SDL_GetError());
+    return false;
+  }
+
+  SDL_GPUColorTargetInfo color_target_info{
+      .texture = swapchain_texture,
+      .clear_color = SDL_FColor{0.4f, 0.6f, 0.9f, 1.0f},
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_STORE,
+  };
+
+  SDL_GPUDepthStencilTargetInfo depth_target_info{
+      .texture = renderer->depth_texture,
+      .clear_depth = 1.0f,
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_DONT_CARE,
+      .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
+      .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE,
+      .cycle = true,
+      .clear_stencil = 0,
+  };
+
+  auto *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info,
+                                             1, &depth_target_info);
+
+  SDL_BindGPUGraphicsPipeline(render_pass, renderer->pipeline);
+
+  for (s32 i = 1; i < thing::max_things; i++) {
+    if (!things->used[i])
+      continue;
+
+    auto &thing = things->slots[i];
+    if (!thing.model)
+      continue;
+
+    SDL_GPUBufferBinding vertex_buffers[] = {SDL_GPUBufferBinding{
+        .buffer = thing.model->mesh->vertex_buffer, .offset = 0}};
+
+    SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
+                             ArrayCount(vertex_buffers));
+
+    SDL_GPUBufferBinding index_buffers[] = {SDL_GPUBufferBinding{
+        .buffer = thing.model->mesh->index_buffer, .offset = 0}};
+
+    SDL_BindGPUIndexBuffer(render_pass, index_buffers,
+                           SDL_GPU_INDEXELEMENTSIZE_32BIT);
+
+    glm::mat4 model_mat = glm::mat4(1.0f);
+    model_mat = glm::translate(model_mat, thing.pos);
+    model_mat =
+        glm::rotate(model_mat, thing.rot.y, glm::vec3(0.0f, 1.0f, 0.0f)); // Yaw
+    model_mat = glm::rotate(model_mat, thing.rot.x,
+                            glm::vec3(1.0f, 0.0f, 0.0f)); // Pitch
+    model_mat = glm::rotate(model_mat, thing.rot.z,
+                            glm::vec3(0.0f, 0.0f, 1.0f)); // Roll
+
+    glm::mat4 mvp = proj_mat * view_mat * model_mat;
+
+    SDL_GPUTextureSamplerBinding binding{.texture = thing.model->texture,
+                                         .sampler = renderer->sampler};
+
+    SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
+
+    SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
+    SDL_DrawGPUIndexedPrimitives(render_pass, 36, 1, 0, 0, 0);
+  }
+
+  SDL_EndGPURenderPass(render_pass);
+  SDL_SubmitGPUCommandBuffer(command_buffer);
+
+  return true;
+}
+
+b32 Init(Renderer *renderer) {
+  renderer->window = SDL_CreateWindow("frag", width, height, 0);
+
+  if (!renderer->window) {
+    SDL_Log("Failed to create window: %s", SDL_GetError());
+    return false;
+  }
+
+  SDL_GPUShaderFormat formatFlags = SDL_GPU_SHADERFORMAT_SPIRV |
+                                    SDL_GPU_SHADERFORMAT_DXIL |
+                                    SDL_GPU_SHADERFORMAT_MSL;
+
+  renderer->device = SDL_CreateGPUDevice(formatFlags, true, nullptr);
+  if (!renderer->device) {
+    SDL_Log("Couldn't create GPU device: %s", SDL_GetError());
+    return false;
+  }
+
+  if (!SDL_ClaimWindowForGPUDevice(renderer->device, renderer->window)) {
+    SDL_Log("Couldn't claim window for GPU device: %s", SDL_GetError());
+    return false;
+  }
+
+  SDL_GPUTextureCreateInfo depth_info{
+      .type = SDL_GPU_TEXTURETYPE_2D,
+      .format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+      .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+      .width = width,
+      .height = height,
+      .layer_count_or_depth = 1,
+      .num_levels = 1,
+  };
+
+  renderer->depth_texture = SDL_CreateGPUTexture(renderer->device, &depth_info);
+
+  if (!CreatePipeline(renderer)) {
+    return false;
+  }
+
+  SDL_GPUSamplerCreateInfo sampler_info{
+      .min_filter = SDL_GPU_FILTER_LINEAR,
+      .mag_filter = SDL_GPU_FILTER_LINEAR,
+      .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+      .address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+      .address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+      .address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+  };
+
+  renderer->sampler = SDL_CreateGPUSampler(renderer->device, &sampler_info);
+
+  return true;
+}
+}; // namespace renderer

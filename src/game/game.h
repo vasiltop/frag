@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../asset.h"
 #include "../base/mem.h"
 #include "../renderer.h"
 #include "../thing.h"
@@ -9,7 +8,7 @@
 
 struct State {
   mem::Arena *perm_arena;
-  Renderer *renderer;
+  renderer::Renderer *renderer;
   thing::Things *things;
 
   u64 last_tick;
@@ -26,5 +25,6 @@ namespace game {
 
 void Init(State *state);
 void Update(State *state, f32 dt);
+void HandleEvent(State *state, SDL_Event *event);
 
 }; // namespace game
