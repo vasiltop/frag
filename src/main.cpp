@@ -1,26 +1,6 @@
 #define SDL_MAIN_USE_CALLBACKS
-#include "base/mem.h"
-#include "renderer.h"
-#include "thing.h"
+#include "game/game.h"
 #include <SDL3/SDL_main.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-struct State {
-  mem::Arena *perm_arena;
-  Renderer *renderer;
-  thing::Things *things;
-
-  u64 last_tick;
-  glm::mat4 proj_mat;
-  glm::mat4 view_mat;
-  f32 angle;
-  b32 mouse_captured;
-  glm::vec3 cam_pos;
-  f32 cam_pitch;
-  f32 cam_yaw;
-  SDL_GPUTexture *texture;
-};
 
 constexpr auto width = 1280;
 constexpr auto height = 720;
@@ -77,65 +57,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  Vertex cube_vertices[] = {
-      // Front face (Z = 0.5)
-      {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
-      {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
-      {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
-      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},  // Top-Left
-
-      // Back face (Z = -0.5)
-      {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
-      {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-Right
-      {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
-      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},   // Top-Left
-
-      // Left face (X = -0.5)
-      {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
-      {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
-      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
-      {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},  // Top-Left
-
-      // Right face (X = 0.5)
-      {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
-      {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-Right
-      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
-      {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},   // Top-Left
-
-      // Top face (Y = 0.5)
-      {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
-      {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},   // Bottom-Right
-      {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
-      {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f}, // Top-Left
-
-      // Bottom face (Y = -0.5)
-      {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
-      {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
-      {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
-      {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f}   // Top-Left
-  };
-
-  u32 cube_indices[] = {// Front face
-                        0, 1, 2, 2, 3, 0,
-                        // Back face
-                        4, 5, 6, 6, 7, 4,
-                        // Left face
-                        8, 9, 10, 10, 11, 8,
-                        // Right face
-                        12, 13, 14, 14, 15, 12,
-                        // Top face
-                        16, 17, 18, 18, 19, 16,
-                        // Bottom face
-                        20, 21, 22, 22, 23, 20};
-
-  if (!CreateVertexBuffer(state->renderer, cube_vertices)) {
-    return SDL_APP_FAILURE;
-  }
-
-  if (!CreateIndexBuffer(state->renderer, cube_indices)) {
-    return SDL_APP_FAILURE;
-  }
-
   state->proj_mat = glm::perspective(glm::radians(45.0f),
                                      (f32)width / (f32)height, 0.1f, 100.f);
   state->view_mat =
@@ -154,12 +75,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   state->renderer->sampler =
       SDL_CreateGPUSampler(state->renderer->device, &sampler_info);
 
-  state->texture = LoadTexture(state->renderer, Str8Lit("./assets/tex.png"));
-  if (!state->texture) {
-    return SDL_APP_FAILURE;
-  }
-
   *appstate = state;
+  game::Init(state);
+
   return SDL_APP_CONTINUE;
 }
 
@@ -197,32 +115,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   return SDL_APP_CONTINUE;
 }
 
-void Movement(State *state, f32 dt) {
-  glm::vec3 front;
-  front.x = cos(state->cam_pitch) * sin(state->cam_yaw);
-  front.y = sin(state->cam_pitch);
-  front.z = cos(state->cam_pitch) * cos(state->cam_yaw);
-  front = glm::normalize(front);
-
-  glm::vec3 right =
-      glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
-
-  auto *keys = SDL_GetKeyboardState(NULL);
-  f32 velocity = 2.5f * dt;
-
-  if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP])
-    state->cam_pos += front * velocity;
-  if (keys[SDL_SCANCODE_S] || keys[SDL_SCANCODE_DOWN])
-    state->cam_pos -= front * velocity;
-  if (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT])
-    state->cam_pos -= right * velocity;
-  if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT])
-    state->cam_pos += right * velocity;
-
-  state->view_mat = glm::lookAt(state->cam_pos, state->cam_pos + front,
-                                glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
 SDL_AppResult SDL_AppIterate(void *appstate) {
   auto state = static_cast<State *>(appstate);
 
@@ -234,7 +126,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   }
   state->last_tick = current_tick;
 
-  Movement(state, delta_time);
+  game::Update(state, delta_time);
 
   auto *command_buffer = SDL_AcquireGPUCommandBuffer(state->renderer->device);
 
@@ -274,30 +166,46 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   SDL_BindGPUGraphicsPipeline(render_pass, state->renderer->pipeline);
 
-  SDL_GPUBufferBinding vertex_buffers[] = {SDL_GPUBufferBinding{
-      .buffer = state->renderer->vertex_buffer, .offset = 0}};
+  for (s32 i = 1; i < thing::max_things; i++) {
+    auto things = state->things;
+    if (!things->used[i])
+      continue;
 
-  SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
-                           ArrayCount(vertex_buffers));
+    auto &thing = things->slots[i];
+    if (!thing.model)
+      continue;
 
-  SDL_GPUBufferBinding index_buffers[] = {SDL_GPUBufferBinding{
-      .buffer = state->renderer->index_buffer, .offset = 0}};
+    SDL_GPUBufferBinding vertex_buffers[] = {SDL_GPUBufferBinding{
+        .buffer = thing.model->mesh->vertex_buffer, .offset = 0}};
 
-  SDL_BindGPUIndexBuffer(render_pass, index_buffers,
-                         SDL_GPU_INDEXELEMENTSIZE_32BIT);
+    SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
+                             ArrayCount(vertex_buffers));
 
-  state->angle += 0.01f;
-  glm::mat4 model_mat =
-      glm::rotate(glm::mat4(1.0f), state->angle, glm::vec3(0.0f, 1.0f, 0.0f));
-  glm::mat4 mvp = state->proj_mat * state->view_mat * model_mat;
+    SDL_GPUBufferBinding index_buffers[] = {SDL_GPUBufferBinding{
+        .buffer = thing.model->mesh->index_buffer, .offset = 0}};
 
-  SDL_GPUTextureSamplerBinding binding{.texture = state->texture,
-                                       .sampler = state->renderer->sampler};
+    SDL_BindGPUIndexBuffer(render_pass, index_buffers,
+                           SDL_GPU_INDEXELEMENTSIZE_32BIT);
 
-  SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
+    glm::mat4 model_mat = glm::mat4(1.0f);
+    model_mat = glm::translate(model_mat, thing.pos);
+    model_mat =
+        glm::rotate(model_mat, thing.rot.y, glm::vec3(0.0f, 1.0f, 0.0f)); // Yaw
+    model_mat = glm::rotate(model_mat, thing.rot.x,
+                            glm::vec3(1.0f, 0.0f, 0.0f)); // Pitch
+    model_mat = glm::rotate(model_mat, thing.rot.z,
+                            glm::vec3(0.0f, 0.0f, 1.0f)); // Roll
 
-  SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
-  SDL_DrawGPUIndexedPrimitives(render_pass, 36, 1, 0, 0, 0);
+    glm::mat4 mvp = state->proj_mat * state->view_mat * model_mat;
+
+    SDL_GPUTextureSamplerBinding binding{.texture = thing.model->texture,
+                                         .sampler = state->renderer->sampler};
+
+    SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
+
+    SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
+    SDL_DrawGPUIndexedPrimitives(render_pass, 36, 1, 0, 0, 0);
+  }
 
   SDL_EndGPURenderPass(render_pass);
   SDL_SubmitGPUCommandBuffer(command_buffer);

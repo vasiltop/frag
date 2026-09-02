@@ -1,20 +1,23 @@
 #include "./base/base.h"
+#include "asset.h"
 #include <glm/glm.hpp>
 
-constexpr auto max_things = 1024;
-
 namespace thing {
+
+constexpr auto max_things = 1024;
 
 struct Ref {
   s32 idx;
   s32 gen;
 };
 
-enum class Kind { Nil, Player };
+enum class Kind { Nil, Cube };
 
 struct Thing {
   Kind kind;
   glm::vec3 pos;
+  glm::vec3 rot;
+  Model *model;
 };
 
 struct Things {
