@@ -1,9 +1,26 @@
-#include "engine.h"
 #define SDL_MAIN_USE_CALLBACKS
 #include "base/mem.h"
+#include "renderer.h"
+#include "thing.h"
 #include <SDL3/SDL_main.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+struct State {
+  mem::Arena *perm_arena;
+  Renderer *renderer;
+  thing::Things *things;
+
+  u64 last_tick;
+  glm::mat4 proj_mat;
+  glm::mat4 view_mat;
+  f32 angle;
+  b32 mouse_captured;
+  glm::vec3 cam_pos;
+  f32 cam_pitch;
+  f32 cam_yaw;
+  SDL_GPUTexture *texture;
+};
 
 constexpr auto width = 1280;
 constexpr auto height = 720;
@@ -13,12 +30,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   auto perm_arena = mem::ArenaAlloc();
   auto state = mem::Push<State>(perm_arena, State{.perm_arena = perm_arena});
+  thing::Init(state->things);
 
-  *appstate = state;
+  state->renderer = mem::Push<Renderer>(perm_arena);
+  state->renderer->window = SDL_CreateWindow("frag", width, height, 0);
 
-  state->window = SDL_CreateWindow("frag", width, height, 0);
-
-  if (!state->window) {
+  if (!state->renderer->window) {
     SDL_Log("Failed to create window: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
@@ -27,13 +44,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
                                     SDL_GPU_SHADERFORMAT_DXIL |
                                     SDL_GPU_SHADERFORMAT_MSL;
 
-  state->device = SDL_CreateGPUDevice(formatFlags, true, nullptr);
-  if (!state->device) {
+  state->renderer->device = SDL_CreateGPUDevice(formatFlags, true, nullptr);
+  if (!state->renderer->device) {
     SDL_Log("Couldn't create GPU device: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
 
-  if (!SDL_ClaimWindowForGPUDevice(state->device, state->window)) {
+  if (!SDL_ClaimWindowForGPUDevice(state->renderer->device,
+                                   state->renderer->window)) {
     SDL_Log("Couldn't claim window for GPU device: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
@@ -48,9 +66,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
       .num_levels = 1,
   };
 
-  state->depth_texture = SDL_CreateGPUTexture(state->device, &depth_info);
+  state->renderer->depth_texture =
+      SDL_CreateGPUTexture(state->renderer->device, &depth_info);
 
-  if (!CreatePipeline(state)) {
+  if (!CreatePipeline(state->renderer)) {
     return SDL_APP_FAILURE;
   }
 
@@ -105,11 +124,11 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
                         // Bottom face
                         20, 21, 22, 22, 23, 20};
 
-  if (!CreateVertexBuffer(state, cube_vertices)) {
+  if (!CreateVertexBuffer(state->renderer, cube_vertices)) {
     return SDL_APP_FAILURE;
   }
 
-  if (!CreateIndexBuffer(state, cube_indices)) {
+  if (!CreateIndexBuffer(state->renderer, cube_indices)) {
     return SDL_APP_FAILURE;
   }
 
@@ -128,13 +147,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
       .address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
   };
 
-  state->sampler = SDL_CreateGPUSampler(state->device, &sampler_info);
+  state->renderer->sampler =
+      SDL_CreateGPUSampler(state->renderer->device, &sampler_info);
 
-  state->texture = LoadTexture(state, Str8Lit("./assets/tex.png"));
+  state->texture = LoadTexture(state->renderer, Str8Lit("./assets/tex.png"));
   if (!state->texture) {
     return SDL_APP_FAILURE;
   }
 
+  *appstate = state;
   return SDL_APP_CONTINUE;
 }
 
@@ -145,14 +166,14 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     return SDL_APP_SUCCESS;
   case SDL_EVENT_MOUSE_BUTTON_DOWN:
     if (event->button.button == SDL_BUTTON_LEFT) {
-      SDL_SetWindowRelativeMouseMode(state->window, true);
+      SDL_SetWindowRelativeMouseMode(state->renderer->window, true);
       state->mouse_captured = true;
     }
     break;
 
   case SDL_EVENT_KEY_DOWN:
     if (event->key.key == SDLK_ESCAPE) {
-      SDL_SetWindowRelativeMouseMode(state->window, false);
+      SDL_SetWindowRelativeMouseMode(state->renderer->window, false);
       state->mouse_captured = false;
     }
     break;
@@ -211,7 +232,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   Movement(state, delta_time);
 
-  auto *command_buffer = SDL_AcquireGPUCommandBuffer(state->device);
+  auto *command_buffer = SDL_AcquireGPUCommandBuffer(state->renderer->device);
 
   if (!command_buffer) {
     SDL_Log("Couldn't acquire GPU command buffer: %s", SDL_GetError());
@@ -219,9 +240,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   }
 
   SDL_GPUTexture *swapchain_texture;
-  if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, state->window,
-                                             &swapchain_texture, nullptr,
-                                             nullptr)) {
+  if (!SDL_WaitAndAcquireGPUSwapchainTexture(
+          command_buffer, state->renderer->window, &swapchain_texture, nullptr,
+          nullptr)) {
     SDL_Log("Couldn't acquire swapchain texture: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
@@ -234,7 +255,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   };
 
   SDL_GPUDepthStencilTargetInfo depth_target_info{
-      .texture = state->depth_texture,
+      .texture = state->renderer->depth_texture,
       .clear_depth = 1.0f,
       .load_op = SDL_GPU_LOADOP_CLEAR,
       .store_op = SDL_GPU_STOREOP_DONT_CARE,
@@ -247,16 +268,16 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   auto *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info,
                                              1, &depth_target_info);
 
-  SDL_BindGPUGraphicsPipeline(render_pass, state->pipeline);
+  SDL_BindGPUGraphicsPipeline(render_pass, state->renderer->pipeline);
 
-  SDL_GPUBufferBinding vertex_buffers[] = {
-      SDL_GPUBufferBinding{.buffer = state->vertex_buffer, .offset = 0}};
+  SDL_GPUBufferBinding vertex_buffers[] = {SDL_GPUBufferBinding{
+      .buffer = state->renderer->vertex_buffer, .offset = 0}};
 
   SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
                            ArrayCount(vertex_buffers));
 
-  SDL_GPUBufferBinding index_buffers[] = {
-      SDL_GPUBufferBinding{.buffer = state->index_buffer, .offset = 0}};
+  SDL_GPUBufferBinding index_buffers[] = {SDL_GPUBufferBinding{
+      .buffer = state->renderer->index_buffer, .offset = 0}};
 
   SDL_BindGPUIndexBuffer(render_pass, index_buffers,
                          SDL_GPU_INDEXELEMENTSIZE_32BIT);
@@ -267,7 +288,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   glm::mat4 mvp = state->proj_mat * state->view_mat * model_mat;
 
   SDL_GPUTextureSamplerBinding binding{.texture = state->texture,
-                                       .sampler = state->sampler};
+                                       .sampler = state->renderer->sampler};
 
   SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
 

@@ -1,34 +1,35 @@
-#include "engine.h"
+#include "renderer.h"
 #include "base/mem.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-SDL_GPUTransferBuffer *TransferData(State *state, void *data, u32 size_bytes) {
+SDL_GPUTransferBuffer *TransferData(Renderer *renderer, void *data,
+                                    u32 size_bytes) {
   SDL_GPUTransferBufferCreateInfo transfer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
       .size = size_bytes,
   };
 
   SDL_GPUTransferBuffer *transfer_buffer =
-      SDL_CreateGPUTransferBuffer(state->device, &transfer_info);
+      SDL_CreateGPUTransferBuffer(renderer->device, &transfer_info);
 
   void *tb_data =
-      SDL_MapGPUTransferBuffer(state->device, transfer_buffer, false);
+      SDL_MapGPUTransferBuffer(renderer->device, transfer_buffer, false);
 
   if (!tb_data) {
     SDL_Log("Couldn't map transfer buffer: %s", SDL_GetError());
-    SDL_ReleaseGPUTransferBuffer(state->device, transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(renderer->device, transfer_buffer);
     return nullptr;
   }
 
   SDL_memcpy(tb_data, data, size_bytes);
-  SDL_UnmapGPUTransferBuffer(state->device, transfer_buffer);
+  SDL_UnmapGPUTransferBuffer(renderer->device, transfer_buffer);
 
   return transfer_buffer;
 }
 
-Upload BeginUpload(State *state) {
-  auto *upload_buf = SDL_AcquireGPUCommandBuffer(state->device);
+Upload BeginUpload(Renderer *renderer) {
+  auto *upload_buf = SDL_AcquireGPUCommandBuffer(renderer->device);
   if (!upload_buf) {
     SDL_Log("Could not acquire GPU command buffer: %s", SDL_GetError());
     return {};
@@ -39,7 +40,7 @@ Upload BeginUpload(State *state) {
   return {copy_pass, upload_buf};
 };
 
-SDL_GPUTexture *LoadTexture(State *state, String8 filename) {
+SDL_GPUTexture *LoadTexture(Renderer *renderer, String8 filename) {
   s32 tex_width;
   s32 tex_height;
   s32 channels;
@@ -64,15 +65,15 @@ SDL_GPUTexture *LoadTexture(State *state, String8 filename) {
       .num_levels = 1,
   };
 
-  auto *texture = SDL_CreateGPUTexture(state->device, &texture_info);
+  auto *texture = SDL_CreateGPUTexture(renderer->device, &texture_info);
   u32 size_bytes = tex_width * tex_height * 4;
 
-  auto transfer = TransferData(state, tex, size_bytes);
+  auto transfer = TransferData(renderer, tex, size_bytes);
 
   if (!transfer)
     return nullptr;
 
-  defer { SDL_ReleaseGPUTransferBuffer(state->device, transfer); };
+  defer { SDL_ReleaseGPUTransferBuffer(renderer->device, transfer); };
 
   SDL_GPUTextureTransferInfo source_info = {
       .transfer_buffer = transfer,
@@ -86,7 +87,7 @@ SDL_GPUTexture *LoadTexture(State *state, String8 filename) {
       .d = 1,
   };
 
-  auto upload = BeginUpload(state);
+  auto upload = BeginUpload(renderer);
   if (!upload.pass)
     return nullptr;
 
@@ -173,14 +174,14 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
   return shader;
 }
 
-b32 CreatePipeline(State *state) {
-  auto *vertex_shader = LoadShader(state->device, Str8Lit("v"));
+b32 CreatePipeline(Renderer *renderer) {
+  auto *vertex_shader = LoadShader(renderer->device, Str8Lit("v"));
   if (!vertex_shader) {
     SDL_Log("Could not create vertex shader!");
     return false;
   }
 
-  auto *fragment_shader = LoadShader(state->device, Str8Lit("f"));
+  auto *fragment_shader = LoadShader(renderer->device, Str8Lit("f"));
   if (!vertex_shader) {
     SDL_Log("Could not create vertex shader!");
     return false;
@@ -217,7 +218,7 @@ b32 CreatePipeline(State *state) {
 
   SDL_GPUColorTargetDescription gpu_color_descs[] = {
       SDL_GPUColorTargetDescription{.format = SDL_GetGPUSwapchainTextureFormat(
-                                        state->device, state->window)}};
+                                        renderer->device, renderer->window)}};
 
   SDL_GPUGraphicsPipelineCreateInfo pipeline_info{
       .vertex_shader = vertex_shader,
@@ -248,24 +249,24 @@ b32 CreatePipeline(State *state) {
           },
   };
 
-  state->pipeline =
-      SDL_CreateGPUGraphicsPipeline(state->device, &pipeline_info);
+  renderer->pipeline =
+      SDL_CreateGPUGraphicsPipeline(renderer->device, &pipeline_info);
 
-  if (!state->pipeline) {
+  if (!renderer->pipeline) {
     SDL_Log("Could not create graphics pipeline! %s", SDL_GetError());
     return false;
   }
 
-  SDL_ReleaseGPUShader(state->device, vertex_shader);
-  SDL_ReleaseGPUShader(state->device, fragment_shader);
+  SDL_ReleaseGPUShader(renderer->device, vertex_shader);
+  SDL_ReleaseGPUShader(renderer->device, fragment_shader);
 
   return true;
 }
 
-b32 CopyToBuffer(State *state, void *data, u32 size, SDL_GPUBuffer *buf) {
-  auto transfer = TransferData(state, data, size);
-  defer { SDL_ReleaseGPUTransferBuffer(state->device, transfer); };
-  auto upload = BeginUpload(state);
+b32 CopyToBuffer(Renderer *renderer, void *data, u32 size, SDL_GPUBuffer *buf) {
+  auto transfer = TransferData(renderer, data, size);
+  defer { SDL_ReleaseGPUTransferBuffer(renderer->device, transfer); };
+  auto upload = BeginUpload(renderer);
 
   if (!transfer || !upload.pass)
     return false;
@@ -286,35 +287,35 @@ b32 CopyToBuffer(State *state, void *data, u32 size, SDL_GPUBuffer *buf) {
   return true;
 }
 
-b32 CreateVertexBuffer(State *state, std::span<Vertex> vertices) {
+b32 CreateVertexBuffer(Renderer *renderer, std::span<Vertex> vertices) {
   u32 size = vertices.size() * sizeof(Vertex);
   SDL_GPUBufferCreateInfo vb_info{.usage = SDL_GPU_BUFFERUSAGE_VERTEX,
                                   .size = size};
 
-  state->vertex_buffer = SDL_CreateGPUBuffer(state->device, &vb_info);
-  if (!state->vertex_buffer) {
+  renderer->vertex_buffer = SDL_CreateGPUBuffer(renderer->device, &vb_info);
+  if (!renderer->vertex_buffer) {
     SDL_Log("Could not create vertex buffer: %s", SDL_GetError());
     return false;
   }
 
-  CopyToBuffer(state, vertices.data(), size, state->vertex_buffer);
+  CopyToBuffer(renderer, vertices.data(), size, renderer->vertex_buffer);
 
   return true;
 }
 
-b32 CreateIndexBuffer(State *state, std::span<u32> indices) {
+b32 CreateIndexBuffer(Renderer *renderer, std::span<u32> indices) {
   u32 size = indices.size() * sizeof(u32);
   SDL_GPUBufferCreateInfo ib_info{.usage = SDL_GPU_BUFFERUSAGE_INDEX,
                                   .size = size};
 
-  state->index_buffer = SDL_CreateGPUBuffer(state->device, &ib_info);
+  renderer->index_buffer = SDL_CreateGPUBuffer(renderer->device, &ib_info);
 
-  if (!state->index_buffer) {
+  if (!renderer->index_buffer) {
     SDL_Log("Could not create index buffer: %s", SDL_GetError());
     return false;
   }
 
-  CopyToBuffer(state, indices.data(), size, state->index_buffer);
+  CopyToBuffer(renderer, indices.data(), size, renderer->index_buffer);
 
   return true;
 }
