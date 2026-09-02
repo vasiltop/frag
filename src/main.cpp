@@ -29,8 +29,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_Log("Init");
 
   auto perm_arena = mem::ArenaAlloc();
-  auto state = mem::Push<State>(perm_arena, State{.perm_arena = perm_arena});
-  thing::Init(state->things);
+
+  auto things = mem::Push<thing::Things>(perm_arena);
+  thing::Init(things);
+
+  auto state = mem::Push<State>(
+      perm_arena, State{.perm_arena = perm_arena, .things = things});
 
   state->renderer = mem::Push<Renderer>(perm_arena);
   state->renderer->window = SDL_CreateWindow("frag", width, height, 0);
