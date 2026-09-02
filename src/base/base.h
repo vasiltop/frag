@@ -25,3 +25,15 @@ typedef s32 b32;
 #define GB(n) ((u64)(n) << 30)
 
 #define AlignPow2(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
+
+template <typename F> struct ScopeGuard {
+  F cleanup;
+
+  ScopeGuard(F f) : cleanup(f) {}
+  ~ScopeGuard() { cleanup(); }
+};
+
+#define DEFER_CONCAT_IMPL(x, y) x##y
+#define DEFER_CONCAT(x, y) DEFER_CONCAT_IMPL(x, y)
+
+#define defer const ScopeGuard DEFER_CONCAT(_defer_var_, __LINE__) = [&]()

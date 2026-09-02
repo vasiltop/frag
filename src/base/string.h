@@ -1,7 +1,7 @@
 #pragma once
 
+#include "./base.h"
 #include "./mem.h"
-#include "./types.h"
 
 struct String8 {
   u8 *str;

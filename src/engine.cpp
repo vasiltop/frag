@@ -3,32 +3,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-SDL_GPUTexture *LoadTexture(State *state, String8 filename) {
-  s32 tex_width;
-  s32 tex_height;
-  s32 channels;
-  u8 *tex =
-      stbi_load((char *)filename.str, &tex_width, &tex_height, &channels, 4);
-
-  if (!tex) {
-    SDL_Log("Failed to load texture: %s", stbi_failure_reason());
-    return nullptr;
-  }
-
-  SDL_GPUTextureCreateInfo texture_info{
-      .type = SDL_GPU_TEXTURETYPE_2D,
-      .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-      .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-      .width = (u32)tex_width,
-      .height = (u32)tex_height,
-      .layer_count_or_depth = 1,
-      .num_levels = 1,
-  };
-
-  auto *texture = SDL_CreateGPUTexture(state->device, &texture_info);
-
-  u32 size_bytes = tex_width * tex_height * 4;
-
+SDL_GPUTransferBuffer *TransferData(State *state, void *data, u32 size_bytes) {
   SDL_GPUTransferBufferCreateInfo transfer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
       .size = size_bytes,
@@ -46,20 +21,61 @@ SDL_GPUTexture *LoadTexture(State *state, String8 filename) {
     return nullptr;
   }
 
-  SDL_memcpy(tb_data, tex, size_bytes);
+  SDL_memcpy(tb_data, data, size_bytes);
   SDL_UnmapGPUTransferBuffer(state->device, transfer_buffer);
-  stbi_image_free(tex);
 
+  return transfer_buffer;
+}
+
+Upload BeginUpload(State *state) {
   auto *upload_buf = SDL_AcquireGPUCommandBuffer(state->device);
   if (!upload_buf) {
     SDL_Log("Could not acquire GPU command buffer: %s", SDL_GetError());
-    return nullptr;
+    return {};
   }
 
   auto *copy_pass = SDL_BeginGPUCopyPass(upload_buf);
 
+  return {copy_pass, upload_buf};
+};
+
+SDL_GPUTexture *LoadTexture(State *state, String8 filename) {
+  s32 tex_width;
+  s32 tex_height;
+  s32 channels;
+
+  u8 *tex =
+      stbi_load((char *)filename.str, &tex_width, &tex_height, &channels, 4);
+
+  if (!tex) {
+    SDL_Log("Failed to load texture: %s", stbi_failure_reason());
+    return nullptr;
+  }
+
+  defer { stbi_image_free(tex); };
+
+  SDL_GPUTextureCreateInfo texture_info{
+      .type = SDL_GPU_TEXTURETYPE_2D,
+      .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+      .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+      .width = (u32)tex_width,
+      .height = (u32)tex_height,
+      .layer_count_or_depth = 1,
+      .num_levels = 1,
+  };
+
+  auto *texture = SDL_CreateGPUTexture(state->device, &texture_info);
+  u32 size_bytes = tex_width * tex_height * 4;
+
+  auto transfer = TransferData(state, tex, size_bytes);
+
+  if (!transfer)
+    return nullptr;
+
+  defer { SDL_ReleaseGPUTransferBuffer(state->device, transfer); };
+
   SDL_GPUTextureTransferInfo source_info = {
-      .transfer_buffer = transfer_buffer,
+      .transfer_buffer = transfer,
       .offset = 0,
   };
 
@@ -70,16 +86,18 @@ SDL_GPUTexture *LoadTexture(State *state, String8 filename) {
       .d = 1,
   };
 
-  SDL_UploadToGPUTexture(copy_pass, &source_info, &destination_region, false);
+  auto upload = BeginUpload(state);
+  if (!upload.pass)
+    return nullptr;
 
-  SDL_EndGPUCopyPass(copy_pass);
+  SDL_UploadToGPUTexture(upload.pass, &source_info, &destination_region, false);
+  SDL_EndGPUCopyPass(upload.pass);
 
-  if (!SDL_SubmitGPUCommandBuffer(upload_buf)) {
+  if (!SDL_SubmitGPUCommandBuffer(upload.buf)) {
     SDL_Log("Could not submit GPU command buffer: %s", SDL_GetError());
     return nullptr;
   }
 
-  SDL_ReleaseGPUTransferBuffer(state->device, transfer_buffer);
   return texture;
 }
 
@@ -245,50 +263,25 @@ b32 CreatePipeline(State *state) {
 }
 
 b32 CopyToBuffer(State *state, void *data, u32 size, SDL_GPUBuffer *buf) {
-  SDL_GPUTransferBufferCreateInfo tb_info{
-      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = size};
+  auto transfer = TransferData(state, data, size);
+  defer { SDL_ReleaseGPUTransferBuffer(state->device, transfer); };
+  auto upload = BeginUpload(state);
 
-  auto *transfer_buffer = SDL_CreateGPUTransferBuffer(state->device, &tb_info);
-  if (!transfer_buffer) {
-    SDL_Log("Could not create transfer buffer: %s", SDL_GetError());
+  if (!transfer || !upload.pass)
     return false;
-  }
 
-  auto *tb_data =
-      SDL_MapGPUTransferBuffer(state->device, transfer_buffer, false);
-
-  if (!tb_data) {
-    SDL_Log("Couldn't map transfer buffer: %s", SDL_GetError());
-    SDL_ReleaseGPUTransferBuffer(state->device, transfer_buffer);
-    return false;
-  }
-
-  SDL_memcpy(tb_data, data, size);
-  SDL_UnmapGPUTransferBuffer(state->device, transfer_buffer);
-
-  auto *upload_buf = SDL_AcquireGPUCommandBuffer(state->device);
-  if (!upload_buf) {
-    SDL_Log("Could not acquire GPU command buffer: %s", SDL_GetError());
-    return false;
-  }
-
-  auto *copy_pass = SDL_BeginGPUCopyPass(upload_buf);
-
-  SDL_GPUTransferBufferLocation buf_loc{.transfer_buffer = transfer_buffer,
+  SDL_GPUTransferBufferLocation buf_loc{.transfer_buffer = transfer,
                                         .offset = 0};
 
   SDL_GPUBufferRegion buf_reg{.buffer = buf, .offset = 0, .size = size};
 
-  SDL_UploadToGPUBuffer(copy_pass, &buf_loc, &buf_reg, false);
+  SDL_UploadToGPUBuffer(upload.pass, &buf_loc, &buf_reg, false);
+  SDL_EndGPUCopyPass(upload.pass);
 
-  SDL_EndGPUCopyPass(copy_pass);
-
-  if (!SDL_SubmitGPUCommandBuffer(upload_buf)) {
+  if (!SDL_SubmitGPUCommandBuffer(upload.buf)) {
     SDL_Log("Could not submit GPU command buffer: %s", SDL_GetError());
     return false;
   }
-
-  SDL_ReleaseGPUTransferBuffer(state->device, transfer_buffer);
 
   return true;
 }
