@@ -28,3 +28,12 @@ add_executable(frag ${SOURCES})
 target_include_directories(frag PRIVATE vendor)
 
 target_link_libraries(frag PRIVATE SDL3::SDL3 glm::glm)
+
+add_executable(frag_tests
+    tests/test_runner.cpp
+    tests/arena_test.cpp
+    tests/thing_test.cpp
+    src/base/mem.cpp
+    src/thing.cpp)
+target_include_directories(frag_tests PRIVATE src src/base tests)
+target_link_libraries(frag_tests PRIVATE SDL3::SDL3 glm::glm)

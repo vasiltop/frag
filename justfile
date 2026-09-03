@@ -8,6 +8,10 @@ debug: shaders
 run:
 	./build/frag
 
+test:
+	cmake --build build --target frag_tests
+	./build/frag_tests
+
 shaders:
     @mkdir -p build/shaders
     tools/shadercross -t vertex shaders/v.hlsl -o build/shaders/v.spv

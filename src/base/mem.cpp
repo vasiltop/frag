@@ -1,5 +1,6 @@
 #include "./mem.h"
 #include <SDL3/SDL_assert.h>
+#undef SDL_memset
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
