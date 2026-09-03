@@ -28,6 +28,7 @@ Ref Add(Things *things, Kind kind) {
   if (slot) {
     things->slots[slot] = {};
     things->slots[slot].kind = kind;
+    things->slots[slot].scale = glm::vec3(1.0f);
     things->used[slot] = true;
     things->gen[slot]++;
     things->first_free = things->next_free[slot];

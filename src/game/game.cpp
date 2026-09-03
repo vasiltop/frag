@@ -29,93 +29,24 @@ priv void Movement(State *state, f32 dt) {
                                 glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-gpu::Vertex cube_vertices[] = {
-    // Front face (Z = 0.5)
-    {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
-    {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
-    {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
-    {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},  // Top-Left
-
-    // Back face (Z = -0.5)
-    {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
-    {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-Right
-    {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
-    {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},   // Top-Left
-
-    // Left face (X = -0.5)
-    {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
-    {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
-    {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
-    {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},  // Top-Left
-
-    // Right face (X = 0.5)
-    {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
-    {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-Right
-    {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
-    {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},   // Top-Left
-
-    // Top face (Y = 0.5)
-    {-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f},  // Bottom-Left
-    {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},   // Bottom-Right
-    {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // Top-Right
-    {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f}, // Top-Left
-
-    // Bottom face (Y = -0.5)
-    {-0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f}, // Bottom-Left
-    {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},  // Bottom-Right
-    {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},   // Top-Right
-    {-0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f}   // Top-Left
-};
-
-u32 cube_indices[] = { // Front face
-    0, 1, 2, 2, 3, 0,
-    // Back face
-    4, 5, 6, 6, 7, 4,
-    // Left face
-    8, 9, 10, 10, 11, 8,
-    // Right face
-    12, 13, 14, 14, 15, 12,
-    // Top face
-    16, 17, 18, 18, 19, 16,
-    // Bottom face
-    20, 21, 22, 22, 23, 20};
-
-thing::Ref cube_ref;
-thing::Ref cube_ref2;
+thing::Ref avocado_ref;
 
 void Init(State *state) {
-  auto texture =
-      LoadTexture(state->renderer->device, Str8Lit("./assets/tex.png"));
-  auto vb = CreateVertexBuffer(state->renderer->device, cube_vertices);
-  auto ib = gpu::CreateIndexBuffer(state->renderer->device, cube_indices);
+  auto *model = mem::Push<asset::Model>(state->perm_arena);
+  asset::LoadGlb(state->perm_arena, state->renderer->device,
+                 Str8Lit("./assets/Avocado.glb"), model);
 
-  cube_ref = thing::Add(state->things, thing::Kind::Cube);
-  auto &cube = thing::Get(state->things, cube_ref);
-  cube.model = mem::Push<Model>(state->perm_arena);
-  cube.model->mesh = mem::Push<Mesh>(state->perm_arena);
-  cube.model->texture = texture;
-  cube.model->mesh->vertex_buffer = vb;
-  cube.model->mesh->index_buffer = ib;
-  cube.pos = glm::vec3(1.0, 1.0, 1.0);
-
-  cube_ref2 = thing::Add(state->things, thing::Kind::Cube);
-  auto &cube2 = thing::Get(state->things, cube_ref2);
-  cube2.model = mem::Push<Model>(state->perm_arena);
-  cube2.model->mesh = mem::Push<Mesh>(state->perm_arena);
-  cube2.model->texture = texture;
-  cube2.model->mesh->vertex_buffer = vb;
-  cube2.model->mesh->index_buffer = ib;
-  cube2.pos = glm::vec3(-1.0, -1.0, -1.0);
+  avocado_ref = thing::Add(state->things, thing::Kind::Cube);
+  auto &avocado = thing::Get(state->things, avocado_ref);
+  avocado.model = model;
+  avocado.scale = glm::vec3(50.0f);
 }
 
 void Update(State *state, f32 dt) {
   Movement(state, dt);
 
-  auto &cube = thing::Get(state->things, cube_ref);
-  cube.rot.y += 1.0f * dt;
-
-  auto &cube2 = thing::Get(state->things, cube_ref2);
-  cube2.rot.y -= 0.5f * dt;
+  auto &av = thing::Get(state->things, avocado_ref);
+  av.rot.y += 1.0f * dt;
 }
 
 void HandleEvent(State *state, SDL_Event *event) {

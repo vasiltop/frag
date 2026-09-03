@@ -234,6 +234,7 @@ b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
                             glm::vec3(1.0f, 0.0f, 0.0f)); // Pitch
     model_mat = glm::rotate(model_mat, thing.rot.z,
                             glm::vec3(0.0f, 0.0f, 1.0f)); // Roll
+    model_mat = glm::scale(model_mat, thing.scale);
 
     glm::mat4 mvp = proj_mat * view_mat * model_mat;
 
@@ -243,7 +244,8 @@ b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
     SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
 
     SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
-    SDL_DrawGPUIndexedPrimitives(render_pass, 36, 1, 0, 0, 0);
+    SDL_DrawGPUIndexedPrimitives(render_pass, thing.model->mesh->index_count, 1,
+                                 0, 0, 0);
   }
 
   SDL_EndGPURenderPass(render_pass);

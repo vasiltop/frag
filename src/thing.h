@@ -19,7 +19,8 @@ struct Thing {
   Kind kind;
   glm::vec3 pos;
   glm::vec3 rot;
-  Model *model;
+  glm::vec3 scale;
+  asset::Model *model;
 };
 
 struct Things {
