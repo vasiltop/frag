@@ -5,17 +5,17 @@
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_Log("Init");
 
-  auto perm_arena = mem::ArenaAlloc();
+  auto perm_arena = ArenaAlloc();
 
-  auto things = mem::Push<thing::Things>(perm_arena);
-  thing::Init(things);
+  auto things = Push<frag::Things>(perm_arena);
+  frag::Init(things);
 
-  auto renderer = mem::Push<renderer::Renderer>(perm_arena);
-  renderer::Init(renderer);
+  auto renderer = Push<frag::Renderer>(perm_arena);
+  frag::Init(renderer);
 
-  auto state = mem::Push<State>(
+  auto state = Push<game::State>(
       perm_arena,
-      State{
+      game::State{
           .perm_arena = perm_arena,
           .renderer = renderer,
           .things = things,
@@ -31,7 +31,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-  auto *state = static_cast<State *>(appstate);
+  auto *state = static_cast<game::State *>(appstate);
   switch (event->type) {
   case SDL_EVENT_QUIT:
     return SDL_APP_SUCCESS;
@@ -43,7 +43,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
-  auto state = static_cast<State *>(appstate);
+  auto state = static_cast<game::State *>(appstate);
 
   u64 current_tick = SDL_GetTicks();
   f32 delta_time{};
@@ -55,8 +55,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   game::Update(state, delta_time);
 
-  if (!Render(state->renderer, state->things, state->proj_mat,
-              state->view_mat)) {
+  if (!frag::Render(state->renderer, state->things, state->proj_mat,
+                    state->view_mat)) {
     return SDL_APP_FAILURE;
   }
 

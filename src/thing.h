@@ -4,7 +4,7 @@
 #include "asset.h"
 #include <glm/glm.hpp>
 
-namespace thing {
+namespace frag {
 
 constexpr auto max_things = 1024;
 
@@ -17,7 +17,7 @@ struct Thing {
   glm::vec3 pos;
   glm::vec3 rot;
   glm::vec3 scale;
-  asset::Model *model;
+  Model *model;
 };
 
 struct Things {
@@ -34,4 +34,4 @@ Ref Add(Things *things);
 Thing &Get(Things *things, Ref ref);
 void Rem(Things *things, Ref ref);
 
-}; // namespace thing
+} // namespace frag

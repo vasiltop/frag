@@ -4,8 +4,6 @@
 #include <new>
 #include <utility>
 
-namespace mem {
-
 struct Arena {
   u8 *base;
   u64 capacity;
@@ -48,5 +46,3 @@ struct TempArena {
 };
 
 TempArena Scratch(Arena **conflicts = nullptr, u64 conflict_count = 0);
-
-}; // namespace mem

@@ -1,6 +1,6 @@
 #include "thing.h"
 
-namespace thing {
+namespace frag {
 
 priv s32 Deref(Things *things, Ref ref) {
   if (ref.idx > 0 && ref.idx < max_things && things->used[ref.idx] &&
@@ -47,4 +47,5 @@ void Rem(Things *things, Ref ref) {
     things->first_free = slot;
   }
 }
-}; // namespace thing
+
+} // namespace frag

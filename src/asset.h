@@ -3,7 +3,8 @@
 #include "base/string.h"
 #include <SDL3/SDL.h>
 
-namespace asset {
+namespace frag {
+
 struct Mesh {
   SDL_GPUBuffer *vertex_buffer;
   SDL_GPUBuffer *index_buffer;
@@ -18,6 +19,6 @@ struct Model {
 SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, String8 filename);
 SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, void *data, s32 width,
                             s32 height);
-b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
-            Model *model);
-}; // namespace asset
+b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out);
+
+} // namespace frag

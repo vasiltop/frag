@@ -6,10 +6,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+namespace game {
+
 struct State {
-  mem::Arena *perm_arena;
-  renderer::Renderer *renderer;
-  thing::Things *things;
+  Arena *perm_arena;
+  frag::Renderer *renderer;
+  frag::Things *things;
 
   u64 last_tick;
   glm::mat4 proj_mat;
@@ -21,10 +23,8 @@ struct State {
   f32 cam_yaw;
 };
 
-namespace game {
-
 void Init(State *state);
 void Update(State *state, f32 dt);
 void HandleEvent(State *state, SDL_Event *event);
 
-}; // namespace game
+} // namespace game

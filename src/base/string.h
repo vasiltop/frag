@@ -10,5 +10,5 @@ struct String8 {
 
 #define Str8Lit(s) String8{(u8 *)(s), sizeof(s) - 1}
 String8 Str8C(const char *cstr);
-String8 Str8Cat(mem::Arena *arena, String8 a, String8 b);
+String8 Str8Cat(Arena *arena, String8 a, String8 b);
 u64 FindFirstChar(String8 s, u8 c, u64 start);

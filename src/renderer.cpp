@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace renderer {
+namespace frag {
 SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
   SDL_GPUShaderStage stage;
 
@@ -17,7 +17,7 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
     return nullptr;
   }
 
-  auto scratch = mem::Scratch();
+  auto scratch = Scratch();
   auto base_path = Str8C(SDL_GetBasePath());
   auto full_path = Str8Cat(scratch.arena, base_path, Str8Lit("/shaders"));
 
@@ -93,7 +93,7 @@ b32 CreatePipeline(Renderer *renderer) {
   SDL_GPUVertexBufferDescription vb_desc[] = {
       SDL_GPUVertexBufferDescription{
           .slot = 0,
-          .pitch = sizeof(gpu::Vertex),
+          .pitch = sizeof(Vertex),
           .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
           .instance_step_rate = 0,
       },
@@ -172,7 +172,7 @@ b32 CreatePipeline(Renderer *renderer) {
   return true;
 }
 
-b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
+b32 Render(Renderer *renderer, Things *things, glm::mat4 proj_mat,
            glm::mat4 view_mat) {
   auto *command_buffer = SDL_AcquireGPUCommandBuffer(renderer->device);
 
@@ -212,7 +212,7 @@ b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
 
   SDL_BindGPUGraphicsPipeline(render_pass, renderer->pipeline);
 
-  for (s32 i = 1; i < thing::max_things; i++) {
+  for (s32 i = 1; i < max_things; i++) {
     if (!things->used[i])
       continue;
 
@@ -304,8 +304,8 @@ b32 Resize(Renderer *renderer, u32 width, u32 height) {
 }
 
 b32 Init(Renderer *renderer) {
-  renderer->window =
-      SDL_CreateWindow("frag", width, height, SDL_WINDOW_RESIZABLE);
+  renderer->window = SDL_CreateWindow("frag", default_window_width,
+                                      default_window_height, SDL_WINDOW_RESIZABLE);
 
   if (!renderer->window) {
     SDL_Log("Failed to create window: %s", SDL_GetError());
@@ -352,4 +352,4 @@ b32 Init(Renderer *renderer) {
 
   return true;
 }
-}; // namespace renderer
+} // namespace frag

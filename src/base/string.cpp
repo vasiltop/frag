@@ -9,7 +9,7 @@ String8 Str8C(const char *cstr) {
   return String8{(u8 *)cstr, (s32)strlen(cstr)};
 }
 
-String8 Str8Cat(mem::Arena *arena, String8 a, String8 b) {
+String8 Str8Cat(Arena *arena, String8 a, String8 b) {
   auto *dst = PushCount<u8>(arena, a.size + b.size + 1);
   if (a.size)
     SDL_memcpy(dst, a.str, a.size);

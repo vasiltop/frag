@@ -28,11 +28,11 @@ priv void Movement(State *state, f32 dt) {
                                 glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-thing::Ref avocado_ref;
+frag::Ref carrier_ref;
 
-priv asset::Model *LoadModel(State *state, mem::Arena *arena, String8 path) {
-  auto *model = mem::Push<asset::Model>(arena);
-  asset::LoadGlb(state->perm_arena, state->renderer->device, path, model);
+priv frag::Model *LoadModel(State *state, Arena *arena, String8 path) {
+  auto *model = Push<frag::Model>(arena);
+  frag::LoadGlb(state->perm_arena, state->renderer->device, path, model);
   return model;
 }
 
@@ -41,12 +41,12 @@ void Init(State *state) {
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
 
-  avocado_ref = thing::Add(state->things);
-  auto &avocado = thing::Get(state->things, avocado_ref);
-  avocado.model =
+  carrier_ref = frag::Add(state->things);
+  auto &carrier = frag::Get(state->things, carrier_ref);
+  carrier.model =
       LoadModel(state, state->perm_arena, Str8Lit("./assets/carrier.glb"));
 
-  auto &ship = thing::Get(state->things, thing::Add(state->things));
+  auto &ship = frag::Get(state->things, frag::Add(state->things));
   ship.model =
       LoadModel(state, state->perm_arena, Str8Lit("./assets/ship.glb"));
   ship.pos = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -55,8 +55,8 @@ void Init(State *state) {
 void Update(State *state, f32 dt) {
   Movement(state, dt);
 
-  auto &av = thing::Get(state->things, avocado_ref);
-  av.rot.y += 0.1f * dt;
+  auto &carrier = frag::Get(state->things, carrier_ref);
+  carrier.rot.y += 0.1f * dt;
 }
 
 void HandleEvent(State *state, SDL_Event *event) {
@@ -65,7 +65,7 @@ void HandleEvent(State *state, SDL_Event *event) {
     if (event->window.windowID == SDL_GetWindowID(state->renderer->window)) {
       u32 w = (u32)event->window.data1;
       u32 h = (u32)event->window.data2;
-      if (renderer::Resize(state->renderer, w, h)) {
+      if (frag::Resize(state->renderer, w, h)) {
         state->proj_mat = glm::perspectiveRH_ZO(glm::radians(45.0f),
                                                 (f32)w / (f32)h, 0.1f, 100.f);
       }
@@ -99,4 +99,4 @@ void HandleEvent(State *state, SDL_Event *event) {
   }
 }
 
-}; // namespace game
+} // namespace game

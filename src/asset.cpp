@@ -6,7 +6,7 @@
 #define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 
-namespace asset {
+namespace frag {
 
 SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, void *data, s32 width,
                             s32 height) {
@@ -23,7 +23,7 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, void *data, s32 width,
   auto *texture = SDL_CreateGPUTexture(device, &texture_info);
   u32 size_bytes = width * height * 4;
 
-  auto transfer = gpu::TransferData(device, data, size_bytes);
+  auto transfer = TransferData(device, data, size_bytes);
 
   if (!transfer)
     return nullptr;
@@ -42,7 +42,7 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, void *data, s32 width,
       .d = 1,
   };
 
-  auto upload = gpu::BeginUpload(device);
+  auto upload = BeginUpload(device);
   if (!upload.pass)
     return nullptr;
 
@@ -75,8 +75,8 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, String8 filename) {
   return LoadTexture(device, tex, tex_width, tex_height);
 }
 
-b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
-            Model *model) {
+b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename,
+            Model *out) {
   cgltf_options options{};
   cgltf_data *data{};
 
@@ -105,7 +105,7 @@ b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
     u8 *tex = stbi_load_from_memory((const stbi_uc *)img_data, (s32)img_size,
                                     &width, &height, &channels, 4);
     if (tex) {
-      model->texture = LoadTexture(device, tex, width, height);
+      out->texture = LoadTexture(device, tex, width, height);
       stbi_image_free(tex);
     }
   }
@@ -133,12 +133,10 @@ b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
   if (vertex_count == 0)
     return false;
 
-  mem::TempArena scratch = mem::Scratch();
-  gpu::Vertex *vertices =
-      mem::PushCount<gpu::Vertex>(scratch.arena, vertex_count);
-  u32 *indices = index_count > 0
-                     ? mem::PushCount<u32>(scratch.arena, index_count)
-                     : nullptr;
+  TempArena scratch = Scratch();
+  Vertex *vertices = PushCount<Vertex>(scratch.arena, vertex_count);
+  u32 *indices = index_count > 0 ? PushCount<u32>(scratch.arena, index_count)
+                                 : nullptr;
 
   for (u64 j = 0; j < vertex_count; ++j) {
     vertices[j] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
@@ -187,13 +185,12 @@ b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
     }
   }
 
-  auto vb = gpu::CreateVertexBuffer(device, {vertices, vertex_count});
-  auto ib = index_count > 0
-                ? gpu::CreateIndexBuffer(device, {indices, index_count})
-                : nullptr;
+  auto vb = CreateVertexBuffer(device, {vertices, vertex_count});
+  auto ib = index_count > 0 ? CreateIndexBuffer(device, {indices, index_count})
+                            : nullptr;
 
-  model->mesh = mem::Push<Mesh>(arena, vb, ib, (u32)index_count);
+  out->mesh = Push<Mesh>(arena, vb, ib, (u32)index_count);
 
   return true;
 }
-}; // namespace asset
+} // namespace frag

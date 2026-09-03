@@ -4,10 +4,10 @@
 #include "thing.h"
 #include <SDL3/SDL.h>
 
-constexpr auto width = 1280;
-constexpr auto height = 720;
+namespace frag {
 
-namespace renderer {
+constexpr u32 default_window_width = 1280;
+constexpr u32 default_window_height = 720;
 
 struct Renderer {
   SDL_GPUDevice *device;
@@ -20,11 +20,11 @@ struct Renderer {
 };
 
 SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename);
-b32 CreatePipeline(Renderer *state);
-b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
+b32 CreatePipeline(Renderer *renderer);
+b32 Render(Renderer *renderer, Things *things, glm::mat4 proj_mat,
            glm::mat4 view_mat);
 
 b32 Init(Renderer *renderer);
 b32 Resize(Renderer *renderer, u32 width, u32 height);
 
-}; // namespace renderer
+} // namespace frag

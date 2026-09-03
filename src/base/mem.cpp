@@ -9,7 +9,6 @@
 #include <unistd.h>
 #endif
 
-namespace mem {
 u64 PageSize() {
 #if defined(_WIN32)
   SYSTEM_INFO info;
@@ -129,7 +128,7 @@ void Pop(Arena *arena, u64 amount) {
   PopTo(arena, pos);
 }
 
-void ArenaClear(Arena *arena) { PopTo(arena, arena_header_size); }
+void Clear(Arena *arena) { PopTo(arena, arena_header_size); }
 
 TempArena Scratch(Arena **conflicts, u64 conflict_count) {
   static thread_local Arena *pool[4] = {};
@@ -153,4 +152,3 @@ TempArena Scratch(Arena **conflicts, u64 conflict_count) {
   return TempArena{nullptr};
 }
 
-}; // namespace mem
