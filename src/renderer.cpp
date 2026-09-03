@@ -266,8 +266,46 @@ b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
   return true;
 }
 
+priv b32 CreateDepthTexture(Renderer *renderer, u32 width, u32 height) {
+  if (renderer->depth_texture) {
+    SDL_ReleaseGPUTexture(renderer->device, renderer->depth_texture);
+    renderer->depth_texture = nullptr;
+  }
+
+  SDL_GPUTextureCreateInfo depth_info{
+      .type = SDL_GPU_TEXTURETYPE_2D,
+      .format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+      .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+      .width = width,
+      .height = height,
+      .layer_count_or_depth = 1,
+      .num_levels = 1,
+  };
+
+  renderer->depth_texture = SDL_CreateGPUTexture(renderer->device, &depth_info);
+  if (!renderer->depth_texture) {
+    SDL_Log("Could not create depth texture: %s", SDL_GetError());
+    return false;
+  }
+
+  renderer->width = width;
+  renderer->height = height;
+  return true;
+}
+
+b32 Resize(Renderer *renderer, u32 width, u32 height) {
+  if (width == 0 || height == 0)
+    return true;
+
+  if (width == renderer->width && height == renderer->height)
+    return true;
+
+  return CreateDepthTexture(renderer, width, height);
+}
+
 b32 Init(Renderer *renderer) {
-  renderer->window = SDL_CreateWindow("frag", width, height, 0);
+  renderer->window =
+      SDL_CreateWindow("frag", width, height, SDL_WINDOW_RESIZABLE);
 
   if (!renderer->window) {
     SDL_Log("Failed to create window: %s", SDL_GetError());
@@ -289,17 +327,13 @@ b32 Init(Renderer *renderer) {
     return false;
   }
 
-  SDL_GPUTextureCreateInfo depth_info{
-      .type = SDL_GPU_TEXTURETYPE_2D,
-      .format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
-      .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
-      .width = width,
-      .height = height,
-      .layer_count_or_depth = 1,
-      .num_levels = 1,
-  };
+  s32 window_width{};
+  s32 window_height{};
+  SDL_GetWindowSizeInPixels(renderer->window, &window_width, &window_height);
 
-  renderer->depth_texture = SDL_CreateGPUTexture(renderer->device, &depth_info);
+  if (!CreateDepthTexture(renderer, (u32)window_width, (u32)window_height)) {
+    return false;
+  }
 
   if (!CreatePipeline(renderer)) {
     return false;

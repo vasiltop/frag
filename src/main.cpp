@@ -20,7 +20,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
           .renderer = renderer,
           .things = things,
           .proj_mat = glm::perspectiveRH_ZO(
-              glm::radians(45.0f), (f32)width / (f32)height, 0.1f, 100.f),
+              glm::radians(45.0f),
+              (f32)renderer->width / (f32)renderer->height, 0.1f, 100.f),
       });
 
   game::Init(state);

@@ -54,6 +54,18 @@ void Update(State *state, f32 dt) {
 
 void HandleEvent(State *state, SDL_Event *event) {
   switch (event->type) {
+  case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+    if (event->window.windowID ==
+        SDL_GetWindowID(state->renderer->window)) {
+      u32 w = (u32)event->window.data1;
+      u32 h = (u32)event->window.data2;
+      if (renderer::Resize(state->renderer, w, h)) {
+        state->proj_mat = glm::perspectiveRH_ZO(
+            glm::radians(45.0f), (f32)w / (f32)h, 0.1f, 100.f);
+      }
+    }
+    break;
+
   case SDL_EVENT_MOUSE_BUTTON_DOWN:
     if (event->button.button == SDL_BUTTON_LEFT) {
       SDL_SetWindowRelativeMouseMode(state->renderer->window, true);
