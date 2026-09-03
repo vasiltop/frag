@@ -13,10 +13,7 @@ struct Ref {
   s32 gen;
 };
 
-enum class Kind { Nil, Cube };
-
 struct Thing {
-  Kind kind;
   glm::vec3 pos;
   glm::vec3 rot;
   glm::vec3 scale;
@@ -33,7 +30,7 @@ struct Things {
 };
 
 void Init(Things *things);
-Ref Add(Things *things, Kind kind);
+Ref Add(Things *things);
 Thing &Get(Things *things, Ref ref);
 void Rem(Things *things, Ref ref);
 

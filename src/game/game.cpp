@@ -30,38 +30,44 @@ priv void Movement(State *state, f32 dt) {
 
 thing::Ref avocado_ref;
 
+priv asset::Model *LoadModel(State *state, mem::Arena *arena, String8 path) {
+  auto *model = mem::Push<asset::Model>(arena);
+  asset::LoadGlb(state->perm_arena, state->renderer->device, path, model);
+  return model;
+}
+
 void Init(State *state) {
   state->cam_pos = glm::vec3(0.0f, 0.0f, 3.0f);
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
 
-  auto *model = mem::Push<asset::Model>(state->perm_arena);
-  asset::LoadGlb(state->perm_arena, state->renderer->device,
-                 Str8Lit("./assets/Avocado.glb"), model);
-
-  avocado_ref = thing::Add(state->things, thing::Kind::Cube);
+  avocado_ref = thing::Add(state->things);
   auto &avocado = thing::Get(state->things, avocado_ref);
-  avocado.model = model;
-  avocado.scale = glm::vec3(50.0f);
+  avocado.model =
+      LoadModel(state, state->perm_arena, Str8Lit("./assets/carrier.glb"));
+
+  auto &ship = thing::Get(state->things, thing::Add(state->things));
+  ship.model =
+      LoadModel(state, state->perm_arena, Str8Lit("./assets/ship.glb"));
+  ship.pos = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
 void Update(State *state, f32 dt) {
   Movement(state, dt);
 
   auto &av = thing::Get(state->things, avocado_ref);
-  av.rot.y += 1.0f * dt;
+  av.rot.y += 0.1f * dt;
 }
 
 void HandleEvent(State *state, SDL_Event *event) {
   switch (event->type) {
   case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-    if (event->window.windowID ==
-        SDL_GetWindowID(state->renderer->window)) {
+    if (event->window.windowID == SDL_GetWindowID(state->renderer->window)) {
       u32 w = (u32)event->window.data1;
       u32 h = (u32)event->window.data2;
       if (renderer::Resize(state->renderer, w, h)) {
-        state->proj_mat = glm::perspectiveRH_ZO(
-            glm::radians(45.0f), (f32)w / (f32)h, 0.1f, 100.f);
+        state->proj_mat = glm::perspectiveRH_ZO(glm::radians(45.0f),
+                                                (f32)w / (f32)h, 0.1f, 100.f);
       }
     }
     break;

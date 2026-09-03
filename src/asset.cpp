@@ -167,7 +167,7 @@ b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
         f32 val[2];
         cgltf_accessor_read_float(acc, j, val, 2);
         vertices[j].u = val[0];
-        vertices[j].v = 1.0f - val[1];
+        vertices[j].v = val[1];
       } else if (attr->type == cgltf_attribute_type_normal) {
         f32 val[3];
         cgltf_accessor_read_float(acc, j, val, 3);

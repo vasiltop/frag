@@ -22,12 +22,11 @@ void Init(Things *things) {
   things->next_free[max_things - 1] = 0;
 }
 
-Ref Add(Things *things, Kind kind) {
+Ref Add(Things *things) {
   s32 slot = things->first_free;
 
   if (slot) {
     things->slots[slot] = {};
-    things->slots[slot].kind = kind;
     things->slots[slot].scale = glm::vec3(1.0f);
     things->used[slot] = true;
     things->gen[slot]++;
