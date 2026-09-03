@@ -1,5 +1,4 @@
 #include "game.h"
-#include "../gpu.h"
 
 namespace game {
 
@@ -32,6 +31,10 @@ priv void Movement(State *state, f32 dt) {
 thing::Ref avocado_ref;
 
 void Init(State *state) {
+  state->cam_pos = glm::vec3(0.0f, 0.0f, 3.0f);
+  state->cam_pitch = 0.0f;
+  state->cam_yaw = 3.14159265f;
+
   auto *model = mem::Push<asset::Model>(state->perm_arena);
   asset::LoadGlb(state->perm_arena, state->renderer->device,
                  Str8Lit("./assets/Avocado.glb"), model);

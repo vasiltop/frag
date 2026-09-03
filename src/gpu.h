@@ -8,6 +8,7 @@ struct Vertex {
   f32 x, y, z;
   f32 r, g, b, a;
   f32 u, v;
+  f32 nx, ny, nz;
 };
 
 struct Upload {

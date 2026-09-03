@@ -63,7 +63,7 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
       .format = format,
       .stage = stage,
       .num_samplers = num_samplers,
-      .num_uniform_buffers = 1,
+      .num_uniform_buffers = 2,
   };
 
   auto *shader = SDL_CreateGPUShader(device, &shader_info);
@@ -117,6 +117,12 @@ b32 CreatePipeline(Renderer *renderer) {
           .buffer_slot = 0,
           .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
           .offset = sizeof(f32) * 7,
+      },
+      SDL_GPUVertexAttribute{
+          .location = 3,
+          .buffer_slot = 0,
+          .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+          .offset = sizeof(f32) * 9,
       }};
 
   SDL_GPUColorTargetDescription gpu_color_descs[] = {
@@ -242,8 +248,14 @@ b32 Render(Renderer *renderer, thing::Things *things, glm::mat4 proj_mat,
                                          .sampler = renderer->sampler};
 
     SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
+    struct VertexUniforms {
+      glm::mat4 mvp;
+      glm::mat4 model;
+    };
+    VertexUniforms uniforms{mvp, model_mat};
+    SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms,
+                                 sizeof(uniforms));
 
-    SDL_PushGPUVertexUniformData(command_buffer, 0, &mvp, sizeof(glm::mat4));
     SDL_DrawGPUIndexedPrimitives(render_pass, thing.model->mesh->index_count, 1,
                                  0, 0, 0);
   }

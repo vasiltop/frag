@@ -141,7 +141,8 @@ b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
                      : nullptr;
 
   for (u64 j = 0; j < vertex_count; ++j) {
-    vertices[j] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f};
+    vertices[j] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+                   1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
   }
 
   for (size_t i = 0; i < prim->attributes_count; ++i) {
@@ -167,6 +168,12 @@ b32 LoadGlb(mem::Arena *arena, SDL_GPUDevice *device, String8 filename,
         cgltf_accessor_read_float(acc, j, val, 2);
         vertices[j].u = val[0];
         vertices[j].v = 1.0f - val[1];
+      } else if (attr->type == cgltf_attribute_type_normal) {
+        f32 val[3];
+        cgltf_accessor_read_float(acc, j, val, 3);
+        vertices[j].nx = val[0];
+        vertices[j].ny = val[1];
+        vertices[j].nz = val[2];
       }
     }
   }
