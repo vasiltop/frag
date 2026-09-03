@@ -28,8 +28,6 @@ priv void Movement(State *state, f32 dt) {
                                 glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-frag::Ref carrier_ref;
-
 priv frag::Model *LoadModel(State *state, Arena *arena, String8 path) {
   auto *model = Push<frag::Model>(arena);
   frag::LoadGlb(state->perm_arena, state->renderer->device, path, model);
@@ -40,24 +38,9 @@ void Init(State *state) {
   state->cam_pos = glm::vec3(0.0f, 0.0f, 3.0f);
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
-
-  carrier_ref = frag::Add(state->things);
-  auto &carrier = frag::Get(state->things, carrier_ref);
-  carrier.model =
-      LoadModel(state, state->perm_arena, Str8Lit("./assets/carrier.glb"));
-
-  auto &ship = frag::Get(state->things, frag::Add(state->things));
-  ship.model =
-      LoadModel(state, state->perm_arena, Str8Lit("./assets/ship.glb"));
-  ship.pos = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
-void Update(State *state, f32 dt) {
-  Movement(state, dt);
-
-  auto &carrier = frag::Get(state->things, carrier_ref);
-  carrier.rot.y += 0.1f * dt;
-}
+void Update(State *state, f32 dt) { Movement(state, dt); }
 
 void HandleEvent(State *state, SDL_Event *event) {
   switch (event->type) {

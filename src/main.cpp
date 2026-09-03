@@ -1,5 +1,5 @@
 #define SDL_MAIN_USE_CALLBACKS
-#include "game/game.h"
+#include "game.h"
 #include <SDL3/SDL_main.h>
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -20,8 +20,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
           .renderer = renderer,
           .things = things,
           .proj_mat = glm::perspectiveRH_ZO(
-              glm::radians(45.0f),
-              (f32)renderer->width / (f32)renderer->height, 0.1f, 100.f),
+              glm::radians(45.0f), (f32)renderer->width / (f32)renderer->height,
+              0.1f, 100.f),
       });
 
   game::Init(state);

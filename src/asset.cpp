@@ -110,6 +110,10 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename,
     }
   }
 
+  if (!out->texture) {
+    out->texture = LoadTexture(device, Str8Lit("./assets/tex.png"));
+  }
+
   if (data->meshes_count == 0)
     return false;
 
