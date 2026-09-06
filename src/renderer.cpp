@@ -8,34 +8,34 @@ namespace frag {
 SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
   SDL_GPUShaderStage stage;
 
-  if (filename.str[0] == 'v') {
+  if (filename.data[0] == 'v') {
     stage = SDL_GPU_SHADERSTAGE_VERTEX;
-  } else if (filename.str[0] == 'f') {
+  } else if (filename.data[0] == 'f') {
     stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
   } else {
-    SDL_Log("Could not deduce shader stage: %s", filename.str);
+    SDL_Log("Could not deduce shader stage: %s", filename.data);
     return nullptr;
   }
 
   auto scratch = Scratch();
   auto base_path = Str8C(SDL_GetBasePath());
-  auto full_path = Str8Cat(scratch.arena, base_path, Str8Lit("/shaders"));
+  auto full_path = Cat(scratch.arena, base_path, Str8Lit("/shaders"));
 
   SDL_GPUShaderFormat format = SDL_GPU_SHADERFORMAT_INVALID;
   auto backend_formats = SDL_GetGPUShaderFormats(device);
 
   auto entrypoint = Str8Lit("main");
-  full_path = Str8Cat(scratch.arena, full_path, Str8Lit("/"));
+  full_path = Cat(scratch.arena, full_path, Str8Lit("/"));
 
   if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV) {
-    filename = Str8Cat(scratch.arena, filename, Str8Lit(".spv"));
+    filename = Cat(scratch.arena, filename, Str8Lit(".spv"));
     format = SDL_GPU_SHADERFORMAT_SPIRV;
   } else if (backend_formats & SDL_GPU_SHADERFORMAT_MSL) {
-    filename = Str8Cat(scratch.arena, filename, Str8Lit(".msl"));
+    filename = Cat(scratch.arena, filename, Str8Lit(".msl"));
     format = SDL_GPU_SHADERFORMAT_MSL;
     entrypoint = Str8Lit("main0");
   } else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL) {
-    filename = Str8Cat(scratch.arena, filename, Str8Lit(".dxil"));
+    filename = Cat(scratch.arena, filename, Str8Lit(".dxil"));
     format = SDL_GPU_SHADERFORMAT_DXIL;
   } else {
     SDL_Log("Could not find a supported shader format for backend %s",
@@ -43,13 +43,16 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
     return nullptr;
   }
 
-  full_path = Str8Cat(scratch.arena, full_path, filename);
+  full_path = Cat(scratch.arena, full_path, filename);
   size_t file_size;
-  void *code = SDL_LoadFile((char *)full_path.str, &file_size);
+  void *code = SDL_LoadFile((char *)full_path.data, &file_size);
+
   if (!code) {
     SDL_Log("Could not load shader from disk\n\t%s", SDL_GetError());
     return nullptr;
   }
+
+  defer { SDL_free(code); };
 
   u32 num_samplers = 0;
   if (stage == SDL_GPU_SHADERSTAGE_FRAGMENT) {
@@ -59,7 +62,7 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
   SDL_GPUShaderCreateInfo shader_info{
       .code_size = file_size,
       .code = static_cast<u8 *>(code),
-      .entrypoint = (char *)entrypoint.str,
+      .entrypoint = (char *)entrypoint.data,
       .format = format,
       .stage = stage,
       .num_samplers = num_samplers,
@@ -68,9 +71,8 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
 
   auto *shader = SDL_CreateGPUShader(device, &shader_info);
   if (!shader) {
-    SDL_Log("Could not create shader from file %s: %s", full_path.str,
+    SDL_Log("Could not create shader from file %s: %s", full_path.data,
             SDL_GetError());
-    SDL_free(code);
     return nullptr;
   }
 
@@ -304,8 +306,9 @@ b32 Resize(Renderer *renderer, u32 width, u32 height) {
 }
 
 b32 Init(Renderer *renderer) {
-  renderer->window = SDL_CreateWindow("frag", default_window_width,
-                                      default_window_height, SDL_WINDOW_RESIZABLE);
+  renderer->window =
+      SDL_CreateWindow("frag", default_window_width, default_window_height,
+                       SDL_WINDOW_RESIZABLE);
 
   if (!renderer->window) {
     SDL_Log("Failed to create window: %s", SDL_GetError());

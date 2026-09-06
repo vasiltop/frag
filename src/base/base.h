@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -39,3 +41,16 @@ template <typename F> struct ScopeGuard {
 #define DEFER_CONCAT(x, y) DEFER_CONCAT_IMPL(x, y)
 
 #define defer const ScopeGuard DEFER_CONCAT(_defer_var_, __LINE__) = [&]()
+
+#if defined(NDEBUG)
+#define Assert(condition) ((void)0)
+#else
+#define Assert(condition)                                                        \
+  do {                                                                           \
+    if (!(condition)) {                                                          \
+      fprintf(stderr, "Assertion failed: %s\n  at %s:%d\n", #condition,         \
+              __FILE__, __LINE__);                                               \
+      abort();                                                                   \
+    }                                                                            \
+  } while (0)
+#endif

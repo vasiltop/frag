@@ -33,7 +33,11 @@ add_executable(frag_tests
     tests/test_runner.cpp
     tests/arena_test.cpp
     tests/thing_test.cpp
+    tests/map_test.cpp
     src/base/mem.cpp
+    src/base/string.cpp
+    src/map.cpp
     src/thing.cpp)
-target_include_directories(frag_tests PRIVATE src src/base tests)
+target_include_directories(frag_tests PRIVATE src tests)
+target_compile_definitions(frag_tests PRIVATE FRAG_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 target_link_libraries(frag_tests PRIVATE SDL3::SDL3 glm::glm)

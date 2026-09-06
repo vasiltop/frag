@@ -63,7 +63,7 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, String8 filename) {
   s32 channels;
 
   u8 *tex =
-      stbi_load((char *)filename.str, &tex_width, &tex_height, &channels, 4);
+      stbi_load((char *)filename.data, &tex_width, &tex_height, &channels, 4);
 
   if (!tex) {
     SDL_Log("Failed to load texture: %s", stbi_failure_reason());
@@ -75,18 +75,18 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, String8 filename) {
   return LoadTexture(device, tex, tex_width, tex_height);
 }
 
-b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename,
-            Model *out) {
+b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
   cgltf_options options{};
   cgltf_data *data{};
 
-  cgltf_result result = cgltf_parse_file(&options, (char *)filename.str, &data);
+  cgltf_result result =
+      cgltf_parse_file(&options, (char *)filename.data, &data);
   if (result != cgltf_result_success)
     return false;
 
   defer { cgltf_free(data); };
 
-  result = cgltf_load_buffers(&options, data, (char *)filename.str);
+  result = cgltf_load_buffers(&options, data, (char *)filename.data);
   if (result != cgltf_result_success)
     return false;
 
@@ -139,8 +139,8 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename,
 
   TempArena scratch = Scratch();
   Vertex *vertices = PushCount<Vertex>(scratch.arena, vertex_count);
-  u32 *indices = index_count > 0 ? PushCount<u32>(scratch.arena, index_count)
-                                 : nullptr;
+  u32 *indices =
+      index_count > 0 ? PushCount<u32>(scratch.arena, index_count) : nullptr;
 
   for (u64 j = 0; j < vertex_count; ++j) {
     vertices[j] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
