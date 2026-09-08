@@ -1,4 +1,5 @@
 #include "map.h"
+#include <cmath>
 #include <cstdlib>
 
 namespace frag {
@@ -79,8 +80,8 @@ priv b32 ParseFace(Arena *arena, MapParser *p, Face *face) {
   face->u = ParseInt(p);
   face->v = ParseInt(p);
   face->tex_rot = ParseInt(p);
-  face->u_scale = ParseInt(p);
-  face->v_scale = ParseInt(p);
+  face->u_scale = ParseFloat(p);
+  face->v_scale = ParseFloat(p);
 
   return true;
 }
@@ -183,6 +184,44 @@ priv b32 ParseMap(Arena *arena, MapParser *p, Map *result) {
 
   result->entities = {entities, entity_count};
   return true;
+}
+
+glm::vec3 FaceNormal(Face face) {
+  auto edge1 = face.b - face.a;
+  auto edge2 = face.c - face.a;
+  auto normal = glm::normalize(glm::cross(edge1, edge2));
+  return normal;
+}
+
+AABB GetBrushAABB(const Brush &brush) {
+  AABB box{};
+
+  for (s32 i = 0; i < brush.faces.size; i++) {
+    auto face = brush.faces[i];
+    auto normal = FaceNormal(face);
+
+    f32 d = glm::dot(normal, face.a);
+
+    // Brush face normals point inward; +X normal is a min-x plane, -X is max-x, etc.
+    if (std::abs(normal.x) > 0.9f) {
+      if (normal.x > 0.0f)
+        box.min.x = d;
+      else
+        box.max.x = -d;
+    } else if (std::abs(normal.y) > 0.9f) {
+      if (normal.y > 0.0f)
+        box.min.y = d;
+      else
+        box.max.y = -d;
+    } else if (std::abs(normal.z) > 0.9f) {
+      if (normal.z > 0.0f)
+        box.min.z = d;
+      else
+        box.max.z = -d;
+    }
+  }
+
+  return box;
 }
 
 b32 LoadMap(Arena *arena, String8 filename, Map *result) {

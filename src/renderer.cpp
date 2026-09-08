@@ -223,13 +223,13 @@ b32 Render(Renderer *renderer, Things *things, glm::mat4 proj_mat,
       continue;
 
     SDL_GPUBufferBinding vertex_buffers[] = {SDL_GPUBufferBinding{
-        .buffer = thing.model->mesh->vertex_buffer, .offset = 0}};
+        .buffer = thing.model->vertex_buffer, .offset = 0}};
 
     SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers,
                              ArrayCount(vertex_buffers));
 
     SDL_GPUBufferBinding index_buffers[] = {SDL_GPUBufferBinding{
-        .buffer = thing.model->mesh->index_buffer, .offset = 0}};
+        .buffer = thing.model->index_buffer, .offset = 0}};
 
     SDL_BindGPUIndexBuffer(render_pass, index_buffers,
                            SDL_GPU_INDEXELEMENTSIZE_32BIT);
@@ -246,10 +246,6 @@ b32 Render(Renderer *renderer, Things *things, glm::mat4 proj_mat,
 
     glm::mat4 mvp = proj_mat * view_mat * model_mat;
 
-    SDL_GPUTextureSamplerBinding binding{.texture = thing.model->texture,
-                                         .sampler = renderer->sampler};
-
-    SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
     struct VertexUniforms {
       glm::mat4 mvp;
       glm::mat4 model;
@@ -258,8 +254,18 @@ b32 Render(Renderer *renderer, Things *things, glm::mat4 proj_mat,
     SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms,
                                  sizeof(uniforms));
 
-    SDL_DrawGPUIndexedPrimitives(render_pass, thing.model->mesh->index_count, 1,
-                                 0, 0, 0);
+    for (s32 sub_idx = 0; sub_idx < thing.model->sub_meshes.size; sub_idx++) {
+      auto &sub_mesh = thing.model->sub_meshes[sub_idx];
+      if (sub_mesh.index_count == 0 || !sub_mesh.texture)
+        continue;
+
+      SDL_GPUTextureSamplerBinding binding{.texture = sub_mesh.texture,
+                                           .sampler = renderer->sampler};
+      SDL_BindGPUFragmentSamplers(render_pass, 0, &binding, 1);
+
+      SDL_DrawGPUIndexedPrimitives(render_pass, sub_mesh.index_count, 1,
+                                   sub_mesh.index_offset, 0, 0);
+    }
   }
 
   SDL_EndGPURenderPass(render_pass);

@@ -8,12 +8,16 @@
 template <typename T> struct Array {
   T *data;
   s32 size;
+
+  T &operator[](s32 idx) const { return data[idx]; }
 };
 
 template <typename T> struct DynArray {
   T *data;
   s32 size;
   s32 capacity;
+
+  T &operator[](s32 idx) { return data[idx]; }
 };
 
 template <typename T> Array<T> Cat(Arena *arena, Array<T> a, Array<T> b) {

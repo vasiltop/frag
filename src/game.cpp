@@ -1,4 +1,5 @@
 #include "game.h"
+#include "map.h"
 
 namespace game {
 
@@ -34,10 +35,26 @@ priv frag::Model *LoadModel(State *state, Arena *arena, String8 path) {
   return model;
 }
 
+frag::Ref map_ref;
+
 void Init(State *state) {
   state->cam_pos = glm::vec3(0.0f, 0.0f, 3.0f);
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
+
+  auto scratch = Scratch();
+
+  auto map_path = Str8Lit("./assets/maps/test_map.map");
+  frag::Map parsed_map;
+  LoadMap(scratch.arena, map_path, &parsed_map);
+
+  map_ref = Add(state->things);
+  auto &map = Get(state->things, map_ref);
+
+  map.model = Push<frag::Model>(state->perm_arena);
+  map.scale = glm::vec3(0.05f, 0.05f, 0.05f);
+  BuildMapModel(state->perm_arena, state->renderer->device, &parsed_map,
+                map.model);
 }
 
 void Update(State *state, f32 dt) { Movement(state, dt); }
