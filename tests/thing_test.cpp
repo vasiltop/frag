@@ -1,5 +1,12 @@
 #include "test.h"
+#include "base/mem.h"
+#include "map.h"
 #include "thing.h"
+#include <cmath>
+
+priv b32 Near(f32 a, f32 b, f32 eps = 0.001f) {
+  return std::abs(a - b) < eps;
+}
 
 TEST(thing_init_sets_up_free_list) {
   frag::Things things{};

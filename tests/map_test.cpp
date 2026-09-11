@@ -93,23 +93,27 @@ TEST(map_loads_test_map) {
   String8 path = Str8C(FRAG_SOURCE_DIR "/assets/maps/test_map.map");
   EXPECT(frag::LoadMap(scratch.arena, path, &map));
 
-  EXPECT(map.entities.size == 1);
+  EXPECT(map.entities.size == 2);
 
-  frag::Entity &entity = map.entities.data[0];
-  EXPECT(Eq(entity.classname, Str8Lit("worldspawn")));
-  EXPECT(entity.brushes.size == 2);
+  frag::Entity &worldspawn = map.entities.data[0];
+  EXPECT(Eq(worldspawn.classname, Str8Lit("worldspawn")));
+  EXPECT(worldspawn.brushes.size == 6);
 
-  for (s32 i = 0; i < entity.brushes.size; i++)
-    EXPECT(entity.brushes.data[i].faces.size == 6);
+  for (s32 i = 0; i < worldspawn.brushes.size; i++)
+    EXPECT(worldspawn.brushes.data[i].faces.size == 6);
 
-  EXPECT(Eq(entity.brushes.data[0].faces.data[0].tex_name, Str8Lit("test/tex")));
-  EXPECT(Eq(entity.brushes.data[1].faces.data[0].tex_name,
-            Str8Lit("__TB_empty")));
+  EXPECT(Eq(worldspawn.brushes.data[0].faces.data[0].tex_name,
+            Str8Lit("test/stone")));
 
-  EXPECT(Near(entity.brushes.data[0].faces.data[0].u_scale, 0.5f));
-  EXPECT(Near(entity.brushes.data[0].faces.data[0].v_scale, 1.0f));
-  EXPECT(Near(entity.brushes.data[1].faces.data[0].u_scale, 1.0f));
-  EXPECT(Near(entity.brushes.data[1].faces.data[0].v_scale, 1.0f));
+  frag::Entity &player_start = map.entities.data[1];
+  EXPECT(Eq(player_start.classname, Str8Lit("info_player_start")));
+  EXPECT(player_start.brushes.size == 0);
+  EXPECT(player_start.properties.size == 2);
+  EXPECT(Eq(player_start.properties.data[0].key, Str8Lit("classname")));
+  EXPECT(Eq(player_start.properties.data[0].value,
+            Str8Lit("info_player_start")));
+  EXPECT(Eq(player_start.properties.data[1].key, Str8Lit("origin")));
+  EXPECT(Eq(player_start.properties.data[1].value, Str8Lit("-336 -64 40")));
 }
 
 TEST(get_brush_aabb_test_map_brush0) {
@@ -120,12 +124,43 @@ TEST(get_brush_aabb_test_map_brush0) {
   EXPECT(frag::LoadMap(scratch.arena, path, &map));
 
   frag::AABB box = frag::GetBrushAABB(map.entities.data[0].brushes.data[0]);
-  EXPECT(Near(box.min.x, 32.0f));
+  EXPECT(Near(box.min.x, -432.0f));
   EXPECT(Near(box.max.x, 160.0f));
-  EXPECT(Near(box.min.y, -112.0f));
+  EXPECT(Near(box.min.y, -224.0f));
   EXPECT(Near(box.max.y, 80.0f));
   EXPECT(Near(box.min.z, -16.0f));
   EXPECT(Near(box.max.z, 16.0f));
+}
+
+TEST(map_parses_origin_vec3) {
+  auto scratch = Scratch();
+
+  frag::Map map{};
+  String8 path = Str8C(FRAG_SOURCE_DIR "/assets/maps/test_map.map");
+  EXPECT(frag::LoadMap(scratch.arena, path, &map));
+
+  frag::Entity &player_start = map.entities.data[1];
+  String8 origin = player_start.properties.data[1].value;
+  glm::vec3 pos = frag::ParseMapVec3(origin);
+
+  EXPECT(Near(pos.x, -336.0f));
+  EXPECT(Near(pos.y, -64.0f));
+  EXPECT(Near(pos.z, 40.0f));
+}
+
+TEST(quake_to_engine_swizzles_yzx) {
+  frag::AABB quake_box{
+      .min = {-432.0f, -224.0f, -16.0f},
+      .max = {160.0f, 80.0f, 16.0f},
+  };
+  frag::AABB box = frag::QuakeToEngine(quake_box, 0.01f);
+
+  EXPECT(Near(box.min.x, -2.24f));
+  EXPECT(Near(box.max.x, 0.80f));
+  EXPECT(Near(box.min.y, -0.16f));
+  EXPECT(Near(box.max.y, 0.16f));
+  EXPECT(Near(box.min.z, -4.32f));
+  EXPECT(Near(box.max.z, 1.60f));
 }
 
 TEST(map_load_missing_file_fails) {
@@ -144,5 +179,7 @@ void run_map_tests() {
   RUN_TEST(get_brush_aabb_thin_box);
   RUN_TEST(map_loads_test_map);
   RUN_TEST(get_brush_aabb_test_map_brush0);
+  RUN_TEST(map_parses_origin_vec3);
+  RUN_TEST(quake_to_engine_swizzles_yzx);
   RUN_TEST(map_load_missing_file_fails);
 }

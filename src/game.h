@@ -21,6 +21,7 @@ struct State {
   glm::vec3 cam_pos;
   f32 cam_pitch;
   f32 cam_yaw;
+	frag::MapRefs map_refs;
 };
 
 void Init(State *state);

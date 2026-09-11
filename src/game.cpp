@@ -1,5 +1,7 @@
 #include "game.h"
+#include "asset.h"
 #include "map.h"
+#include "thing.h"
 
 namespace game {
 
@@ -29,32 +31,23 @@ priv void Movement(State *state, f32 dt) {
                                 glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-priv frag::Model *LoadModel(State *state, Arena *arena, String8 path) {
-  auto *model = Push<frag::Model>(arena);
-  frag::LoadGlb(state->perm_arena, state->renderer->device, path, model);
-  return model;
+priv void SetMap(State *state, String8 path) {
+  auto scratch = Scratch();
+  frag::Map map;
+  LoadMap(scratch.arena, path, &map);
+  state->map_refs = PopulateThingsFromMap(
+      state->perm_arena, state->renderer->device, state->things, &map);
 }
 
-frag::Ref map_ref;
-
 void Init(State *state) {
-  state->cam_pos = glm::vec3(0.0f, 0.0f, 3.0f);
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
 
-  auto scratch = Scratch();
+  SetMap(state, Str8Lit("./assets/maps/test_map.map"));
 
-  auto map_path = Str8Lit("./assets/maps/test_map.map");
-  frag::Map parsed_map;
-  LoadMap(scratch.arena, map_path, &parsed_map);
-
-  map_ref = Add(state->things);
-  auto &map = Get(state->things, map_ref);
-
-  map.model = Push<frag::Model>(state->perm_arena);
-  map.scale = glm::vec3(0.05f, 0.05f, 0.05f);
-  BuildMapModel(state->perm_arena, state->renderer->device, &parsed_map,
-                map.model);
+  auto &player = frag::Get(state->things, state->map_refs.player);
+  state->cam_pos = player.pos;
+  state->cam_yaw = player.rot.y;
 }
 
 void Update(State *state, f32 dt) { Movement(state, dt); }

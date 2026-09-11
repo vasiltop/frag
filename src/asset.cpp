@@ -366,48 +366,9 @@ priv void BuildBrushFace(Array<Vertex> vertices, Array<u32> indices, Brush brush
   };
 }
 
-priv void BuildBrushGeometry(Array<Vertex> vertices, Array<u32> indices,
-                             Brush brush, SDL_GPUDevice *device, Arena *arena,
-                             SubMesh *sub_meshes, s32 *sub_mesh_count,
-                             s32 *face_idx) {
-  auto aabb = GetBrushAABB(brush);
-
-  glm::vec3 p0 = {aabb.min.x, aabb.min.y, aabb.min.z};
-  glm::vec3 p1 = {aabb.max.x, aabb.min.y, aabb.min.z};
-  glm::vec3 p2 = {aabb.max.x, aabb.max.y, aabb.min.z};
-  glm::vec3 p3 = {aabb.min.x, aabb.max.y, aabb.min.z};
-
-  glm::vec3 p4 = {aabb.min.x, aabb.min.y, aabb.max.z};
-  glm::vec3 p5 = {aabb.max.x, aabb.min.y, aabb.max.z};
-  glm::vec3 p6 = {aabb.max.x, aabb.max.y, aabb.max.z};
-  glm::vec3 p7 = {aabb.min.x, aabb.max.y, aabb.max.z};
-
-  glm::vec3 n0 = {0.0f, 0.0f, -1.0f};
-  glm::vec3 n1 = {0.0f, 0.0f, 1.0f};
-  glm::vec3 n2 = {0.0f, -1.0f, 0.0f};
-  glm::vec3 n3 = {0.0f, 1.0f, 0.0f};
-  glm::vec3 n4 = {-1.0f, 0.0f, 0.0f};
-  glm::vec3 n5 = {1.0f, 0.0f, 0.0f};
-
-  BuildBrushFace(vertices, indices, brush, device, arena, p3, p2, p1, p0, n0,
-                 sub_meshes, sub_mesh_count, face_idx);
-  BuildBrushFace(vertices, indices, brush, device, arena, p4, p5, p6, p7, n1,
-                 sub_meshes, sub_mesh_count, face_idx);
-  BuildBrushFace(vertices, indices, brush, device, arena, p0, p1, p5, p4, n2,
-                 sub_meshes, sub_mesh_count, face_idx);
-  BuildBrushFace(vertices, indices, brush, device, arena, p2, p3, p7, p6, n3,
-                 sub_meshes, sub_mesh_count, face_idx);
-  BuildBrushFace(vertices, indices, brush, device, arena, p3, p0, p4, p7, n4,
-                 sub_meshes, sub_mesh_count, face_idx);
-  BuildBrushFace(vertices, indices, brush, device, arena, p1, p2, p6, p5, n5,
-                 sub_meshes, sub_mesh_count, face_idx);
-}
-
-b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Map *map, Model *out) {
-  s32 total_brushes = 0;
-  for (s32 i = 0; i < map->entities.size; i++) {
-    total_brushes += map->entities[i].brushes.size;
-  }
+b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Entity *entity,
+                  Model *out) {
+  s32 total_brushes = entity->brushes.size;
 
   if (total_brushes == 0)
     return false;
@@ -421,15 +382,45 @@ b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Map *map, Model *out) {
   s32 total_faces = total_brushes * 6;
   SubMesh *sub_meshes = PushCount<SubMesh>(scratch.arena, total_faces);
 
+	out->colliders = NewArray<AABB>(arena, total_brushes);
+
   s32 face_idx = 0;
   s32 sub_mesh_count = 0;
 
-  for (s32 entity_idx{}; entity_idx < map->entities.size; entity_idx++) {
-    auto entity = map->entities[entity_idx];
-    for (s32 brush_idx{}; brush_idx < entity.brushes.size; brush_idx++) {
-      BuildBrushGeometry(vertices, indices, entity.brushes[brush_idx], device,
-                         scratch.arena, sub_meshes, &sub_mesh_count, &face_idx);
-    }
+  for (s32 brush_idx{}; brush_idx < entity->brushes.size; brush_idx++) {
+    auto brush = entity->brushes.data[brush_idx];
+    auto map_aabb = GetBrushAABB(brush);
+    out->colliders.data[brush_idx] = QuakeToEngine(map_aabb, MAP_SCALE);
+
+    glm::vec3 p0 = {map_aabb.min.x, map_aabb.min.y, map_aabb.min.z};
+    glm::vec3 p1 = {map_aabb.max.x, map_aabb.min.y, map_aabb.min.z};
+    glm::vec3 p2 = {map_aabb.max.x, map_aabb.max.y, map_aabb.min.z};
+    glm::vec3 p3 = {map_aabb.min.x, map_aabb.max.y, map_aabb.min.z};
+
+    glm::vec3 p4 = {map_aabb.min.x, map_aabb.min.y, map_aabb.max.z};
+    glm::vec3 p5 = {map_aabb.max.x, map_aabb.min.y, map_aabb.max.z};
+    glm::vec3 p6 = {map_aabb.max.x, map_aabb.max.y, map_aabb.max.z};
+    glm::vec3 p7 = {map_aabb.min.x, map_aabb.max.y, map_aabb.max.z};
+
+    glm::vec3 n0 = {0.0f, 0.0f, -1.0f};
+    glm::vec3 n1 = {0.0f, 0.0f, 1.0f};
+    glm::vec3 n2 = {0.0f, -1.0f, 0.0f};
+    glm::vec3 n3 = {0.0f, 1.0f, 0.0f};
+    glm::vec3 n4 = {-1.0f, 0.0f, 0.0f};
+    glm::vec3 n5 = {1.0f, 0.0f, 0.0f};
+
+			BuildBrushFace(vertices, indices, brush, device, arena, p3, p2, p1, p0, n0,
+										 sub_meshes, &sub_mesh_count, &face_idx);
+			BuildBrushFace(vertices, indices, brush, device, arena, p4, p5, p6, p7, n1,
+										 sub_meshes, &sub_mesh_count, &face_idx);
+			BuildBrushFace(vertices, indices, brush, device, arena, p0, p1, p5, p4, n2,
+										 sub_meshes, &sub_mesh_count, &face_idx);
+			BuildBrushFace(vertices, indices, brush, device, arena, p2, p3, p7, p6, n3,
+										 sub_meshes, &sub_mesh_count, &face_idx);
+			BuildBrushFace(vertices, indices, brush, device, arena, p3, p0, p4, p7, n4,
+										 sub_meshes, &sub_mesh_count, &face_idx);
+    BuildBrushFace(vertices, indices, brush, device, arena, p1, p2, p6, p5, n5,
+                   sub_meshes, &sub_mesh_count, &face_idx);
   }
 
   out->vertex_buffer =

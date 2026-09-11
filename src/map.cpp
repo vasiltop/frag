@@ -119,6 +119,8 @@ priv b32 ParseEntity(Arena *arena, MapParser *p, Entity *entity) {
   if (!Expect(p, '{'))
     return false;
 
+  entity->properties.data = PushCount<EntityKeyValue>(arena, MAX_ENTITY_KEYS);
+  entity->properties.size = 0;
   entity->brushes.data = PushCount<Brush>(arena, MAX_BRUSHES);
   entity->brushes.size = 0;
 
@@ -136,8 +138,12 @@ priv b32 ParseEntity(Arena *arena, MapParser *p, Entity *entity) {
     }
 
     if (c == '"') {
+      if (entity->properties.size >= MAX_ENTITY_KEYS)
+        return false;
+
       String8 key = ParseQuoted(arena, p);
       String8 val = ParseQuoted(arena, p);
+      entity->properties.data[entity->properties.size++] = {key, val};
       if (Eq(key, Str8Lit("classname")))
         entity->classname = val;
       continue;
@@ -222,6 +228,28 @@ AABB GetBrushAABB(const Brush &brush) {
   }
 
   return box;
+}
+
+glm::vec3 ParseMapVec3(String8 s) {
+  MapParser p{.content = s};
+  return {ParseFloat(&p), ParseFloat(&p), ParseFloat(&p)};
+}
+
+glm::vec3 ParseMapAngles(String8 s) {
+  glm::vec3 deg = ParseMapVec3(s);
+  constexpr f32 deg_to_rad = 0.017453292519943295f;
+  return deg * deg_to_rad;
+}
+
+glm::vec3 QuakeToEngine(glm::vec3 quake, f32 scale) {
+  return glm::vec3(quake.y * scale, quake.z * scale, quake.x * scale);
+}
+
+AABB QuakeToEngine(AABB quake, f32 scale) {
+  return AABB{
+      .min = {quake.min.y * scale, quake.min.z * scale, quake.min.x * scale},
+      .max = {quake.max.y * scale, quake.max.z * scale, quake.max.x * scale},
+  };
 }
 
 b32 LoadMap(Arena *arena, String8 filename, Map *result) {

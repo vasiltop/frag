@@ -1,4 +1,6 @@
 #include "thing.h"
+#include "map.h"
+#include <SDL3/SDL.h>
 
 namespace frag {
 
@@ -9,6 +11,15 @@ priv s32 Deref(Things *things, Ref ref) {
   }
 
   return 0;
+}
+
+priv String8 EntityProperty(Entity *entity, String8 key) {
+  for (s32 i = 0; i < entity->properties.size; i++) {
+    if (Eq(entity->properties.data[i].key, key))
+      return entity->properties.data[i].value;
+  }
+
+  return {};
 }
 
 void Init(Things *things) {
@@ -46,6 +57,35 @@ void Rem(Things *things, Ref ref) {
     things->next_free[slot] = things->first_free;
     things->first_free = slot;
   }
+}
+
+MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device, Things *things, Map *map) {
+	MapRefs refs{};
+  for (auto &entity : map->entities) {
+    auto ref = Add(things);
+    auto &thing = Get(things, ref);
+
+    if (Eq(entity.classname, Str8Lit("worldspawn"))) {
+			refs.map = ref;
+      thing.kind = ThingKind::Map;
+			thing.model = Push<Model>(arena);
+			thing.scale = glm::vec3(MAP_SCALE, MAP_SCALE, MAP_SCALE);
+			BuildMapModel(arena, device, &entity, thing.model);
+    } else if (Eq(entity.classname, Str8Lit("info_player_start"))) {
+      refs.player = ref;
+      thing.kind = ThingKind::Player;
+
+      if (String8 origin = EntityProperty(&entity, Str8Lit("origin")); origin.size)
+        thing.pos = QuakeToEngine(ParseMapVec3(origin), MAP_SCALE);
+
+      if (String8 angles = EntityProperty(&entity, Str8Lit("angles")); angles.size)
+        thing.rot = ParseMapAngles(angles);
+      else if (String8 angle = EntityProperty(&entity, Str8Lit("angle")); angle.size)
+        thing.rot.y = ParseMapAngles(angle).x;
+    }
+  }
+
+	return refs;
 }
 
 } // namespace frag

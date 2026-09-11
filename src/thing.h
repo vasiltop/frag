@@ -13,7 +13,10 @@ struct Ref {
   s32 gen;
 };
 
+enum class ThingKind : u8 { None, Map, Player };
+
 struct Thing {
+  ThingKind kind;
   glm::vec3 pos;
   glm::vec3 rot;
   glm::vec3 scale;
@@ -29,9 +32,15 @@ struct Things {
   s32 next_free[max_things];
 };
 
+struct MapRefs {
+	Ref map;
+	Ref player;
+};
+
 void Init(Things *things);
 Ref Add(Things *things);
 Thing &Get(Things *things, Ref ref);
 void Rem(Things *things, Ref ref);
+MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device, Things *things, Map *map);
 
 } // namespace frag

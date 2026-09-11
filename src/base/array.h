@@ -10,6 +10,8 @@ template <typename T> struct Array {
   s32 size;
 
   T &operator[](s32 idx) const { return data[idx]; }
+  T* begin() const { return data; }
+  T* end() const   { return data + size; }
 };
 
 template <typename T> struct DynArray {
@@ -18,6 +20,8 @@ template <typename T> struct DynArray {
   s32 capacity;
 
   T &operator[](s32 idx) { return data[idx]; }
+  T* begin() const { return data; }
+  T* end() const   { return data + size; }
 };
 
 template <typename T> Array<T> Cat(Arena *arena, Array<T> a, Array<T> b) {
