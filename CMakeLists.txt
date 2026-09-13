@@ -33,6 +33,12 @@ target_include_directories(frag PRIVATE vendor)
 
 target_link_libraries(frag PRIVATE SDL3::SDL3 glm::glm)
 
+add_custom_command(TARGET frag POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/assets"
+        "$<TARGET_FILE_DIR:frag>/assets"
+    COMMENT "Copy assets next to frag"
+)
 if(CMAKE_CONFIGURATION_TYPES)
     add_custom_command(TARGET frag POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory

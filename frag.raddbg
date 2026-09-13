@@ -1,0 +1,9 @@
+// raddbg 0.9.28 project file
+
+name: frag
+target:
+{
+  executable: "build/Debug/frag.exe"
+  working_directory: "build/Debug"
+  enabled: 1
+}

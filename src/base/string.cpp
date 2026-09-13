@@ -18,7 +18,11 @@ String8 Copy(Arena *arena, String8 src) {
 }
 
 b32 Eq(String8 a, String8 b) {
-  return a.size == b.size && SDL_memcmp(a.data, b.data, a.size) == 0;
+  if (a.size != b.size)
+    return false;
+  if (a.size == 0)
+    return true;
+  return SDL_memcmp(a.data, b.data, a.size) == 0;
 }
 
 u64 FindFirstChar(String8 s, u8 c, u64 start) {

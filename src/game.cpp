@@ -149,8 +149,11 @@ priv void Movement(State *state, f32 dt) {
 
 priv void SetMap(State *state, String8 path) {
   auto scratch = Scratch();
-  frag::Map map;
-  LoadMap(scratch.arena, path, &map);
+  frag::Map map{};
+  if (!LoadMap(scratch.arena, path, &map)) {
+    SDL_Log("Failed to load map: %s", path.data);
+    return;
+  }
   state->map_refs = PopulateThingsFromMap(
       state->perm_arena, state->renderer->device, state->things, &map);
 }
@@ -159,7 +162,7 @@ void Init(State *state) {
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
 
-  SetMap(state, Str8Lit("./assets/maps/test_map.map"));
+  SetMap(state, Str8Lit("assets/maps/test_map.map"));
 
   auto &player = frag::Get(state->things, state->map_refs.player);
   state->cam_pos = player.pos + glm::vec3(0.f, VIEW_HEIGHT, 0.f);
@@ -196,7 +199,7 @@ void HandleEvent(State *state, SDL_Event *event) {
     break;
   case SDL_EVENT_MOUSE_MOTION:
     if (state->mouse_captured) {
-      float sensitivity = 0.003f;
+      float sensitivity = 0.0006f;
 
       state->cam_yaw -= event->motion.xrel * sensitivity;
       state->cam_pitch -=

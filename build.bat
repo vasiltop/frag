@@ -28,6 +28,8 @@ if errorlevel 1 exit /b 1
 if not exist build\Debug\shaders mkdir build\Debug\shaders
 xcopy /Y /I /Q build\shaders\* build\Debug\shaders\
 if errorlevel 1 exit /b 1
+xcopy /E /I /Y /Q assets build\Debug\assets\
+if errorlevel 1 exit /b 1
 
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
 if errorlevel 1 exit /b 1

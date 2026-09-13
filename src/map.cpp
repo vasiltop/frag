@@ -253,6 +253,7 @@ AABB QuakeToEngine(AABB quake, f32 scale) {
 }
 
 b32 LoadMap(Arena *arena, String8 filename, Map *result) {
+  *result = {};
   size_t file_size{};
   void *data = SDL_LoadFile((char *)filename.data, &file_size);
   if (!data)

@@ -18,24 +18,22 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
   }
 
   auto scratch = Scratch();
-  auto base_path = Str8C(SDL_GetBasePath());
-  auto full_path = Cat(scratch.arena, base_path, Str8Lit("/shaders"));
 
   SDL_GPUShaderFormat format = SDL_GPU_SHADERFORMAT_INVALID;
   auto backend_formats = SDL_GetGPUShaderFormats(device);
 
   auto entrypoint = Str8Lit("main");
-  full_path = Cat(scratch.arena, full_path, Str8Lit("/"));
+  String8 ext = Str8Lit(".spv");
 
   if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV) {
-    filename = Cat(scratch.arena, filename, Str8Lit(".spv"));
+    ext = Str8Lit(".spv");
     format = SDL_GPU_SHADERFORMAT_SPIRV;
   } else if (backend_formats & SDL_GPU_SHADERFORMAT_MSL) {
-    filename = Cat(scratch.arena, filename, Str8Lit(".msl"));
+    ext = Str8Lit(".msl");
     format = SDL_GPU_SHADERFORMAT_MSL;
     entrypoint = Str8Lit("main0");
   } else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL) {
-    filename = Cat(scratch.arena, filename, Str8Lit(".dxil"));
+    ext = Str8Lit(".dxil");
     format = SDL_GPU_SHADERFORMAT_DXIL;
   } else {
     SDL_Log("Could not find a supported shader format for backend %s",
@@ -43,7 +41,8 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
     return nullptr;
   }
 
-  full_path = Cat(scratch.arena, full_path, filename);
+  auto full_path =
+      Cat(scratch.arena, Cat(scratch.arena, Str8Lit("shaders/"), filename), ext);
   size_t file_size;
   void *code = SDL_LoadFile((char *)full_path.data, &file_size);
 

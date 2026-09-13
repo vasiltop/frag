@@ -5,6 +5,12 @@
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_Log("Init");
 
+  if (char *base = SDL_GetBasePath()) {
+    if (!SDL_SetCurrentDirectory(base))
+      SDL_Log("Could not set cwd to %s: %s", base, SDL_GetError());
+    SDL_free(base);
+  }
+
   auto perm_arena = ArenaAlloc();
 
   auto things = Push<frag::Things>(perm_arena);
