@@ -33,3 +33,11 @@ cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
 if errorlevel 1 exit /b 1
 cmake --build build --config Debug
 if errorlevel 1 exit /b 1
+
+echo Generating compile_commands.json for LSP
+cmake -B build-lsp -G Ninja -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DFETCHCONTENT_SOURCE_DIR_SDL3="%CD%\build\_deps\sdl3-src" -DFETCHCONTENT_SOURCE_DIR_GLM="%CD%\build\_deps\glm-src"
+if errorlevel 1 (
+    echo warning: could not generate compile_commands.json. Install Ninja and rerun.
+) else (
+    copy /Y build-lsp\compile_commands.json compile_commands.json >nul
+)

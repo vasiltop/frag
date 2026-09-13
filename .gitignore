@@ -1,4 +1,6 @@
 build/
+build-lsp/
 build-xcode/
+compile_commands.json
 tools/
 shaders/compiled/
