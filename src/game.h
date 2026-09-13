@@ -8,6 +8,17 @@
 
 namespace game {
 
+priv constexpr f32 MAX_GROUND_SPEED = 3.2;
+priv constexpr f32 MAX_GROUND_ACCEL = MAX_GROUND_SPEED * 8.0;
+priv constexpr f32 MAX_AIR_SPEED = 0.4;
+priv constexpr f32 MAX_AIR_ACCEL = 200.0;
+priv constexpr f32 MAX_SLOPE = 1.0;
+priv constexpr f32 JUMP_FORCE = 2.7;
+priv constexpr f32 GRAVITY = 8.0;
+priv constexpr f32 GROUNDED_HEIGHT = 0.01;
+priv constexpr f32 FRICTION = 2.0;
+priv constexpr f32 VIEW_HEIGHT = 0.22;
+
 struct State {
   Arena *perm_arena;
   frag::Renderer *renderer;

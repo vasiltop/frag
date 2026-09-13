@@ -19,6 +19,7 @@ struct Thing {
   ThingKind kind;
   glm::vec3 pos;
   glm::vec3 rot;
+  glm::vec3 vel;
   glm::vec3 scale;
   Array<AABB> colliders;
   Model *model;
