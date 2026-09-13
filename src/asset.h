@@ -16,7 +16,6 @@ struct Model {
   SDL_GPUBuffer *vertex_buffer;
   SDL_GPUBuffer *index_buffer;
   Array<SubMesh> sub_meshes;
-	Array<AABB> colliders;
 };
 
 constexpr auto vertices_per_face = 4;
@@ -29,6 +28,6 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, void *data, s32 width,
                             s32 height);
 b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out);
 b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Entity *entity,
-                  Model *out);
+                  Model *out, Array<AABB> *colliders);
 
 } // namespace frag

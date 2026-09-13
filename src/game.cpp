@@ -1,5 +1,4 @@
 #include "game.h"
-#include "asset.h"
 #include "map.h"
 #include "thing.h"
 
@@ -29,6 +28,14 @@ priv void Movement(State *state, f32 dt) {
 
   state->view_mat = glm::lookAt(state->cam_pos, state->cam_pos + front,
                                 glm::vec3(0.0f, 1.0f, 0.0f));
+
+  auto &player = Get(state->things, state->map_refs.player);
+  player.pos = state->cam_pos;
+  for (auto &thing : *state->things) {
+    if (thing.kind != frag::ThingKind::Player && Collision(player, thing)) {
+			SDL_Log("Collision");
+    }
+  }
 }
 
 priv void SetMap(State *state, String8 path) {

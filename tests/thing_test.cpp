@@ -15,7 +15,8 @@ TEST(thing_init_sets_up_free_list) {
   EXPECT(things.first_free == 1);
   EXPECT(things.used[1] == false);
   EXPECT(things.next_free[1] == 2);
-  EXPECT(things.next_free[frag::max_things - 1] == 0);
+  EXPECT(things.next_free[frag::MAX_THINGS - 1] == 0);
+  EXPECT(things.first_used == 0);
 }
 
 TEST(thing_add_returns_valid_ref) {
@@ -90,6 +91,26 @@ TEST(thing_rem_invalidates_ref) {
   EXPECT(things.gen[idx] == gen);
 }
 
+TEST(thing_used_list_tracks_live_slots) {
+  frag::Things things{};
+  frag::Init(&things);
+
+  frag::Ref a = frag::Add(&things);
+  frag::Ref b = frag::Add(&things);
+  frag::Ref c = frag::Add(&things);
+
+  EXPECT(things.first_used == c.idx);
+  EXPECT(things.next_used[c.idx] == b.idx);
+  EXPECT(things.next_used[b.idx] == a.idx);
+  EXPECT(things.next_used[a.idx] == 0);
+
+  frag::Rem(&things, b);
+
+  EXPECT(things.first_used == c.idx);
+  EXPECT(things.next_used[c.idx] == a.idx);
+  EXPECT(things.next_used[a.idx] == 0);
+}
+
 TEST(thing_reuse_bumps_generation) {
   frag::Things things{};
   frag::Init(&things);
@@ -116,5 +137,6 @@ void run_thing_tests() {
   RUN_TEST(thing_get_returns_added_thing);
   RUN_TEST(thing_rem_frees_slot);
   RUN_TEST(thing_rem_invalidates_ref);
+  RUN_TEST(thing_used_list_tracks_live_slots);
   RUN_TEST(thing_reuse_bumps_generation);
 }

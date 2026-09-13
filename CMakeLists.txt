@@ -38,6 +38,7 @@ add_executable(frag_tests
     src/base/string.cpp
     src/map.cpp
     src/thing.cpp
+    src/physics.cpp
     src/asset.cpp
     src/gpu.cpp)
 target_include_directories(frag_tests PRIVATE src tests vendor)

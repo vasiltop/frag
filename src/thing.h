@@ -6,7 +6,7 @@
 
 namespace frag {
 
-constexpr auto max_things = 1024;
+constexpr auto MAX_THINGS = 1024;
 
 struct Ref {
   s32 idx;
@@ -20,16 +20,35 @@ struct Thing {
   glm::vec3 pos;
   glm::vec3 rot;
   glm::vec3 scale;
+  Array<AABB> colliders;
   Model *model;
 };
 
 struct Things {
-  Thing slots[max_things];
-  b32 used[max_things];
-  s32 gen[max_things];
+  Thing slots[MAX_THINGS];
+  b32 used[MAX_THINGS];
+  s32 gen[MAX_THINGS];
 
   s32 first_free;
-  s32 next_free[max_things];
+  s32 next_free[MAX_THINGS];
+
+  s32 first_used;
+  s32 next_used[MAX_THINGS];
+
+  struct Iter {
+    Things *things;
+    s32 idx;
+
+    Thing &operator*() const { return things->slots[idx]; }
+    Iter &operator++() {
+      idx = things->next_used[idx];
+      return *this;
+    }
+    bool operator!=(Iter other) const { return idx != other.idx; }
+  };
+
+  Iter begin() { return {this, first_used}; }
+  Iter end() { return {this, 0}; }
 };
 
 struct MapRefs {
@@ -42,5 +61,6 @@ Ref Add(Things *things);
 Thing &Get(Things *things, Ref ref);
 void Rem(Things *things, Ref ref);
 MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device, Things *things, Map *map);
+b32 Collision(Thing &a, Thing &b);
 
 } // namespace frag

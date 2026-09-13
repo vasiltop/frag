@@ -51,6 +51,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   if (state->last_tick > 0) {
     delta_time = (f32)(current_tick - state->last_tick) / 1000.f;
   }
+
+	SDL_Log("Frame time: %f", delta_time);
   state->last_tick = current_tick;
 
   game::Update(state, delta_time);

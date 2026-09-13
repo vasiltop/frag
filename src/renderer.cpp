@@ -214,11 +214,7 @@ b32 Render(Renderer *renderer, Things *things, glm::mat4 proj_mat,
 
   SDL_BindGPUGraphicsPipeline(render_pass, renderer->pipeline);
 
-  for (s32 i = 1; i < max_things; i++) {
-    if (!things->used[i])
-      continue;
-
-    auto &thing = things->slots[i];
+  for (auto &thing : *things) {
     if (!thing.model)
       continue;
 

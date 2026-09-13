@@ -11,5 +11,4 @@ struct AABB {
 };
 
 b32 Collision(AABB a, AABB b);
-
 };

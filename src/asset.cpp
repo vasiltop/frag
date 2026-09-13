@@ -367,7 +367,7 @@ priv void BuildBrushFace(Array<Vertex> vertices, Array<u32> indices, Brush brush
 }
 
 b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Entity *entity,
-                  Model *out) {
+                  Model *out, Array<AABB> *colliders) {
   s32 total_brushes = entity->brushes.size;
 
   if (total_brushes == 0)
@@ -382,7 +382,7 @@ b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Entity *entity,
   s32 total_faces = total_brushes * 6;
   SubMesh *sub_meshes = PushCount<SubMesh>(scratch.arena, total_faces);
 
-	out->colliders = NewArray<AABB>(arena, total_brushes);
+	*colliders = NewArray<AABB>(arena, total_brushes);
 
   s32 face_idx = 0;
   s32 sub_mesh_count = 0;
@@ -390,7 +390,7 @@ b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Entity *entity,
   for (s32 brush_idx{}; brush_idx < entity->brushes.size; brush_idx++) {
     auto brush = entity->brushes.data[brush_idx];
     auto map_aabb = GetBrushAABB(brush);
-    out->colliders.data[brush_idx] = QuakeToEngine(map_aabb, MAP_SCALE);
+    colliders->data[brush_idx] = QuakeToEngine(map_aabb, MAP_SCALE);
 
     glm::vec3 p0 = {map_aabb.min.x, map_aabb.min.y, map_aabb.min.z};
     glm::vec3 p1 = {map_aabb.max.x, map_aabb.min.y, map_aabb.min.z};
