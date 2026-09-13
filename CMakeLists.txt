@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
@@ -28,6 +32,15 @@ add_executable(frag ${SOURCES})
 target_include_directories(frag PRIVATE vendor)
 
 target_link_libraries(frag PRIVATE SDL3::SDL3 glm::glm)
+
+if(CMAKE_CONFIGURATION_TYPES)
+    add_custom_command(TARGET frag POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/shaders"
+            "$<TARGET_FILE_DIR:frag>/shaders"
+        COMMENT "Copy shaders next to frag"
+    )
+endif()
 
 add_executable(frag_tests
     tests/test_runner.cpp
