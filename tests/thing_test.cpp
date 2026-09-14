@@ -127,6 +127,19 @@ TEST(thing_reuse_bumps_generation) {
   EXPECT(things.used[idx] == true);
 }
 
+TEST(thing_clear_removes_all) {
+  frag::Things things{};
+  frag::Init(&things);
+
+  frag::Add(&things);
+  frag::Add(&things);
+  frag::Clear(&things);
+
+  EXPECT(things.first_used == 0);
+  EXPECT(things.first_free == 1);
+  EXPECT(things.used[1] == false);
+}
+
 void run_thing_tests() {
   printf("thing tests\n");
 
@@ -139,4 +152,5 @@ void run_thing_tests() {
   RUN_TEST(thing_rem_invalidates_ref);
   RUN_TEST(thing_used_list_tracks_live_slots);
   RUN_TEST(thing_reuse_bumps_generation);
+  RUN_TEST(thing_clear_removes_all);
 }

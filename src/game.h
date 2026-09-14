@@ -45,6 +45,7 @@ struct Sound {
 
 struct State {
   Arena *perm_arena;
+  Arena *level_arena;
   frag::Renderer *renderer;
   frag::Things *things;
 
@@ -57,6 +58,7 @@ struct State {
   f32 cam_pitch;
   f32 cam_yaw;
   frag::MapRefs map_refs;
+  String8 map_path;
 
   frag::Model *enemy_model;
   frag::Model *bullet_model;
@@ -68,6 +70,7 @@ struct State {
   SDL_AudioDeviceID audio_device;
   Sound shoot;
   Sound jump;
+  Sound boom;
   SDL_AudioStream *voices[MAX_SOUND_VOICES];
 };
 

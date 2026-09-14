@@ -212,6 +212,30 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
   return true;
 }
 
+void ReleaseModel(SDL_GPUDevice *device, Model *model) {
+  if (!device || !model)
+    return;
+  if (model->vertex_buffer) {
+    SDL_ReleaseGPUBuffer(device, model->vertex_buffer);
+    model->vertex_buffer = nullptr;
+  }
+  if (model->index_buffer) {
+    SDL_ReleaseGPUBuffer(device, model->index_buffer);
+    model->index_buffer = nullptr;
+  }
+  for (s32 i = 0; i < model->sub_meshes.size; i++) {
+    auto *texture = model->sub_meshes[i].texture;
+    if (!texture)
+      continue;
+    SDL_ReleaseGPUTexture(device, texture);
+    for (s32 j = i + 1; j < model->sub_meshes.size; j++) {
+      if (model->sub_meshes[j].texture == texture)
+        model->sub_meshes[j].texture = nullptr;
+    }
+    model->sub_meshes[i].texture = nullptr;
+  }
+}
+
 priv String8 MapTexturePath(Arena *arena, String8 tex_name) {
   String8 relative;
   if (tex_name.size == 0 || Eq(tex_name, Str8Lit("__TB_empty")))

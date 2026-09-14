@@ -61,6 +61,7 @@ struct MapRefs {
 };
 
 void Init(Things *things);
+void Clear(Things *things);
 Ref Add(Things *things);
 Thing &Get(Things *things, Ref ref);
 Ref MakeRef(Things *things, s32 idx);

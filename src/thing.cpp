@@ -34,6 +34,8 @@ void Init(Things *things) {
   things->next_free[MAX_THINGS - 1] = 0;
 }
 
+void Clear(Things *things) { Init(things); }
+
 Ref Add(Things *things) {
   s32 slot = things->first_free;
 

@@ -28,6 +28,7 @@ SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, String8 filename);
 SDL_GPUTexture *LoadTexture(SDL_GPUDevice *device, void *data, s32 width,
                             s32 height);
 b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out);
+void ReleaseModel(SDL_GPUDevice *device, Model *model);
 b32 BuildMapModel(Arena *arena, SDL_GPUDevice *device, Entity *entity,
                   Model *out, Array<AABB> *colliders);
 

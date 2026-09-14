@@ -8,6 +8,8 @@
 
 namespace game {
 
+priv void SetMap(State *state, String8 path);
+
 priv b32 Grounded(frag::Thing &player, frag::Thing &map) {
   frag::Thing test = player;
   test.pos.y -= GROUNDED_HEIGHT;
@@ -365,15 +367,17 @@ priv void UpdateProjectiles(State *state, f32 dt) {
         }
         if (bullet.owner == frag::ThingKind::Enemy &&
             other.kind == frag::ThingKind::Player) {
-          SDL_Log("Player hit by a bullet");
-          remove = true;
-          break;
+          PlaySound(state, &state->boom, 1.f);
+          SetMap(state, state->map_path);
+          return;
         }
       }
     }
 
-    if (hit_enemy.idx)
+    if (hit_enemy.idx) {
+      PlaySound(state, &state->boom, 1.f);
       frag::Rem(things, hit_enemy);
+    }
     if (remove)
       frag::Rem(things, frag::MakeRef(things, idx));
 
@@ -458,6 +462,27 @@ priv void Movement(State *state, f32 dt) {
                                 glm::vec3(0.f, 1.f, 0.f));
 }
 
+priv void ResetPlayerView(State *state) {
+  auto &player = frag::Get(state->things, state->map_refs.player);
+  state->cam_pitch = 0.0f;
+  state->cam_yaw = player.rot.y;
+  state->cam_pos = player.pos + glm::vec3(0.f, VIEW_HEIGHT, 0.f);
+  state->player_fire_cd = 0.f;
+}
+
+priv void UnloadLevel(State *state) {
+  if (state->map_refs.map.idx) {
+    auto &map = frag::Get(state->things, state->map_refs.map);
+    frag::ReleaseModel(state->renderer->device, map.model);
+  }
+
+  frag::Clear(state->things);
+  state->map_refs = {};
+  state->nav = {};
+  if (state->level_arena)
+    Clear(state->level_arena);
+}
+
 priv void SetMap(State *state, String8 path) {
   auto scratch = Scratch();
   frag::Map map{};
@@ -465,7 +490,10 @@ priv void SetMap(State *state, String8 path) {
     SDL_Log("Failed to load map: %s", path.data);
     return;
   }
-  state->map_refs = PopulateThingsFromMap(state->perm_arena,
+
+  UnloadLevel(state);
+
+  state->map_refs = PopulateThingsFromMap(state->level_arena,
                                           state->renderer->device, state->things,
                                           &map, state->enemy_model);
 
@@ -476,8 +504,9 @@ priv void SetMap(State *state, String8 path) {
   }
 
   auto &map_thing = frag::Get(state->things, state->map_refs.map);
-  state->nav = frag::BuildNavGrid(state->perm_arena, map_thing.colliders,
+  state->nav = frag::BuildNavGrid(state->level_arena, map_thing.colliders,
                                   map_thing.pos);
+  ResetPlayerView(state);
 }
 
 priv void LoadSharedModels(State *state) {
@@ -549,22 +578,24 @@ priv void InitAudio(State *state) {
 
   LoadSound(&state->shoot, Str8Lit("assets/sound/shoot.wav"));
   LoadSound(&state->jump, Str8Lit("assets/sound/jump.wav"));
+  LoadSound(&state->boom, Str8Lit("assets/sound/boom.wav"));
 }
 
 void Init(State *state) {
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
   state->bullet_scale = glm::vec3(1.f);
+  if (!state->level_arena)
+    state->level_arena = ArenaAlloc();
 
   InitAudio(state);
   LoadSharedModels(state);
 
   auto scratch = Scratch();
-  SetMap(state, WithBasePath(scratch.arena, Str8Lit("assets/maps/test_map.map")));
-
-  auto &player = frag::Get(state->things, state->map_refs.player);
-  state->cam_pos = player.pos + glm::vec3(0.f, VIEW_HEIGHT, 0.f);
-  state->cam_yaw = player.rot.y;
+  auto path =
+      WithBasePath(scratch.arena, Str8Lit("assets/maps/test_map.map"));
+  state->map_path = Cat(state->perm_arena, path, String8{});
+  SetMap(state, state->map_path);
 }
 
 void Shutdown(State *state) {
@@ -576,9 +607,15 @@ void Shutdown(State *state) {
   }
   FreeSound(&state->shoot);
   FreeSound(&state->jump);
+  FreeSound(&state->boom);
   if (state->audio_device) {
     SDL_CloseAudioDevice(state->audio_device);
     state->audio_device = 0;
+  }
+  UnloadLevel(state);
+  if (state->level_arena) {
+    Release(state->level_arena);
+    state->level_arena = nullptr;
   }
 }
 
