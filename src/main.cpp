@@ -5,12 +5,6 @@
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_Log("Init");
 
-  if (char *base = SDL_GetBasePath()) {
-    if (!SDL_SetCurrentDirectory(base))
-      SDL_Log("Could not set cwd to %s: %s", base, SDL_GetError());
-    SDL_free(base);
-  }
-
   auto perm_arena = ArenaAlloc();
 
   auto things = Push<frag::Things>(perm_arena);
@@ -26,7 +20,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
           .renderer = renderer,
           .things = things,
           .proj_mat = glm::perspectiveRH_ZO(
-              glm::radians(45.0f), (f32)renderer->width / (f32)renderer->height,
+              glm::radians(game::FOV), (f32)renderer->width / (f32)renderer->height,
               0.1f, 100.f),
       });
 

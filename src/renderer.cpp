@@ -41,8 +41,10 @@ SDL_GPUShader *LoadShader(SDL_GPUDevice *device, String8 filename) {
     return nullptr;
   }
 
-  auto full_path =
-      Cat(scratch.arena, Cat(scratch.arena, Str8Lit("shaders/"), filename), ext);
+  auto full_path = WithBasePath(
+      scratch.arena,
+      Cat(scratch.arena, Cat(scratch.arena, Str8Lit("shaders/"), filename),
+          ext));
   size_t file_size;
   void *code = SDL_LoadFile((char *)full_path.data, &file_size);
 

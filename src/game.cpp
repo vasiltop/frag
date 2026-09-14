@@ -162,7 +162,8 @@ void Init(State *state) {
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
 
-  SetMap(state, Str8Lit("assets/maps/test_map.map"));
+  auto scratch = Scratch();
+  SetMap(state, WithBasePath(scratch.arena, Str8Lit("assets/maps/test_map.map")));
 
   auto &player = frag::Get(state->things, state->map_refs.player);
   state->cam_pos = player.pos + glm::vec3(0.f, VIEW_HEIGHT, 0.f);
@@ -178,7 +179,7 @@ void HandleEvent(State *state, SDL_Event *event) {
       u32 w = (u32)event->window.data1;
       u32 h = (u32)event->window.data2;
       if (frag::Resize(state->renderer, w, h)) {
-        state->proj_mat = glm::perspectiveRH_ZO(glm::radians(45.0f),
+        state->proj_mat = glm::perspectiveRH_ZO(glm::radians(FOV),
                                                 (f32)w / (f32)h, 0.1f, 100.f);
       }
     }

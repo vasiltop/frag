@@ -114,7 +114,7 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
   }
 
   if (!texture) {
-    texture = LoadTexture(device, Str8Lit("assets/tex.png"));
+    texture = LoadTexture(device, WithBasePath(arena, Str8Lit("assets/tex.png")));
   }
 
   if (data->meshes_count == 0)
@@ -203,10 +203,13 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
 }
 
 priv String8 MapTexturePath(Arena *arena, String8 tex_name) {
+  String8 relative;
   if (tex_name.size == 0 || Eq(tex_name, Str8Lit("__TB_empty")))
-    return Str8Lit("assets/textures/test/tex.png");
-  return Cat(arena, Cat(arena, Str8Lit("assets/textures/"), tex_name),
-             Str8Lit(".png"));
+    relative = Str8Lit("assets/textures/test/tex.png");
+  else
+    relative = Cat(arena, Cat(arena, Str8Lit("assets/textures/"), tex_name),
+                   Str8Lit(".png"));
+  return WithBasePath(arena, relative);
 }
 
 priv void TextureDimensions(Arena *arena, String8 tex_name, s32 *width,

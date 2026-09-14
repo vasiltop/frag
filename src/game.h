@@ -18,6 +18,7 @@ priv constexpr f32 GRAVITY = 8.0;
 priv constexpr f32 GROUNDED_HEIGHT = 0.01;
 priv constexpr f32 FRICTION = 2.0;
 priv constexpr f32 VIEW_HEIGHT = 0.22;
+priv constexpr f32 FOV = 90.0f;
 
 struct State {
   Arena *perm_arena;

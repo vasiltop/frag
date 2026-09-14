@@ -17,6 +17,14 @@ String8 Copy(Arena *arena, String8 src) {
   return {data, src.size};
 }
 
+String8 WithBasePath(Arena *arena, String8 relative) {
+  const char *base = SDL_GetBasePath();
+  if (!base)
+    return relative;
+
+  return Cat(arena, Str8C(base), relative);
+}
+
 b32 Eq(String8 a, String8 b) {
   if (a.size != b.size)
     return false;

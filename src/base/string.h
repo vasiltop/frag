@@ -13,6 +13,7 @@ struct String8Cursor {
 #define Str8Lit(s) String8{(u8 *)(s), sizeof(s) - 1}
 String8 Str8C(const char *cstr);
 String8 Copy(Arena *arena, String8 src);
+String8 WithBasePath(Arena *arena, String8 relative);
 b32 Eq(String8 a, String8 b);
 u64 FindFirstChar(String8 s, u8 c, u64 start);
 
