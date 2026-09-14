@@ -1,4 +1,5 @@
 #include "game.h"
+#include "asset.h"
 #include "map.h"
 #include "thing.h"
 #include <cmath>
@@ -65,12 +66,145 @@ priv void MoveAndSlide(frag::Thing &player, frag::Thing &map, glm::vec3 &velocit
   }
 }
 
-priv void FreecamMovement(State *state, f32 dt) {
+priv glm::vec3 CamForward(State *state) {
   glm::vec3 front;
-  front.x = cos(state->cam_pitch) * sin(state->cam_yaw);
-  front.y = sin(state->cam_pitch);
-  front.z = cos(state->cam_pitch) * cos(state->cam_yaw);
-  front = glm::normalize(front);
+  front.x = cosf(state->cam_pitch) * sinf(state->cam_yaw);
+  front.y = sinf(state->cam_pitch);
+  front.z = cosf(state->cam_pitch) * cosf(state->cam_yaw);
+  return glm::normalize(front);
+}
+
+priv glm::vec3 ThingCenter(frag::Thing &thing) {
+  if (thing.colliders.size == 0)
+    return thing.pos;
+  auto &col = thing.colliders.data[0];
+  return thing.pos + 0.5f * (col.min + col.max);
+}
+
+priv glm::vec3 DirToRot(glm::vec3 dir) {
+  dir = glm::normalize(dir);
+  // Renderer applies yaw (Y) then pitch (X). Local +Z is forward, matching
+  // CamForward; pitch is negated because RotX maps +Z toward -Y.
+  return glm::vec3(-asinf(glm::clamp(dir.y, -1.f, 1.f)), atan2f(dir.x, dir.z),
+                   0.f);
+}
+
+priv void SpawnProjectile(State *state, glm::vec3 origin, glm::vec3 dir,
+                          frag::ThingKind owner) {
+  if (!state->bullet_model || glm::dot(dir, dir) < 0.0001f)
+    return;
+
+  dir = glm::normalize(dir);
+  auto ref = frag::Add(state->things);
+  auto &thing = frag::Get(state->things, ref);
+  thing.kind = frag::ThingKind::Projectile;
+  thing.owner = owner;
+  thing.model = state->bullet_model;
+  thing.scale = state->bullet_scale;
+  thing.colliders = state->bullet_colliders;
+  thing.pos = origin + dir * BULLET_SPAWN_OFFSET;
+  thing.vel = dir * BULLET_SPEED;
+  thing.rot = DirToRot(dir);
+  thing.timer = BULLET_LIFETIME;
+}
+
+priv void PlayerShoot(State *state, f32 dt) {
+  if (state->player_fire_cd > 0.f)
+    state->player_fire_cd -= dt;
+
+  if (!state->mouse_captured || state->player_fire_cd > 0.f)
+    return;
+
+  f32 mx, my;
+  SDL_MouseButtonFlags buttons = SDL_GetMouseState(&mx, &my);
+  if (!(buttons & SDL_BUTTON_LMASK))
+    return;
+
+  SpawnProjectile(state, state->cam_pos, CamForward(state),
+                  frag::ThingKind::Player);
+  state->player_fire_cd = PLAYER_FIRE_INTERVAL;
+}
+
+priv void UpdateEnemies(State *state, f32 dt) {
+  auto *things = state->things;
+  for (s32 idx = things->first_used; idx; idx = things->next_used[idx]) {
+    auto &enemy = things->slots[idx];
+    if (enemy.kind != frag::ThingKind::Enemy)
+      continue;
+
+    glm::vec3 origin = ThingCenter(enemy);
+    glm::vec3 dir = state->cam_pos - origin;
+    if (glm::dot(dir, dir) > 0.0001f) {
+      dir = glm::normalize(dir);
+      enemy.rot.y = atan2f(dir.x, dir.z);
+    }
+
+    enemy.timer -= dt;
+    if (enemy.timer > 0.f)
+      continue;
+
+    SpawnProjectile(state, origin, dir, frag::ThingKind::Enemy);
+    enemy.timer = ENEMY_FIRE_INTERVAL;
+  }
+}
+
+priv void UpdateProjectiles(State *state, f32 dt) {
+  auto *things = state->things;
+  for (s32 idx = things->first_used; idx;) {
+    s32 next = things->next_used[idx];
+    auto &bullet = things->slots[idx];
+    if (!things->used[idx] || bullet.kind != frag::ThingKind::Projectile) {
+      idx = next;
+      continue;
+    }
+
+    bullet.pos += bullet.vel * dt;
+    bullet.rot = DirToRot(bullet.vel);
+    bullet.timer -= dt;
+
+    b32 remove = bullet.timer <= 0.f;
+    frag::Ref hit_enemy{};
+
+    if (!remove) {
+      for (s32 other_idx = things->first_used; other_idx;
+           other_idx = things->next_used[other_idx]) {
+        if (!things->used[other_idx] || other_idx == idx)
+          continue;
+
+        auto &other = things->slots[other_idx];
+        if (!frag::Collision(bullet, other))
+          continue;
+
+        if (other.kind == frag::ThingKind::Map) {
+          remove = true;
+          break;
+        }
+        if (bullet.owner == frag::ThingKind::Player &&
+            other.kind == frag::ThingKind::Enemy) {
+          hit_enemy = frag::MakeRef(things, other_idx);
+          remove = true;
+          break;
+        }
+        if (bullet.owner == frag::ThingKind::Enemy &&
+            other.kind == frag::ThingKind::Player) {
+          SDL_Log("Player hit by a bullet");
+          remove = true;
+          break;
+        }
+      }
+    }
+
+    if (hit_enemy.idx)
+      frag::Rem(things, hit_enemy);
+    if (remove)
+      frag::Rem(things, frag::MakeRef(things, idx));
+
+    idx = next;
+  }
+}
+
+priv void FreecamMovement(State *state, f32 dt) {
+  glm::vec3 front = CamForward(state);
 
   glm::vec3 right =
       glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
@@ -137,12 +271,7 @@ priv void Movement(State *state, f32 dt) {
   player.rot.y = state->cam_yaw;
   state->cam_pos = player.pos + glm::vec3(0.f, VIEW_HEIGHT, 0.f);
 
-  glm::vec3 front;
-  front.x = cosf(state->cam_pitch) * sinf(state->cam_yaw);
-  front.y = sinf(state->cam_pitch);
-  front.z = cosf(state->cam_pitch) * cosf(state->cam_yaw);
-  front = glm::normalize(front);
-
+  glm::vec3 front = CamForward(state);
   state->view_mat = glm::lookAt(state->cam_pos, state->cam_pos + front,
                                 glm::vec3(0.f, 1.f, 0.f));
 }
@@ -154,13 +283,60 @@ priv void SetMap(State *state, String8 path) {
     SDL_Log("Failed to load map: %s", path.data);
     return;
   }
-  state->map_refs = PopulateThingsFromMap(
-      state->perm_arena, state->renderer->device, state->things, &map);
+  state->map_refs = PopulateThingsFromMap(state->perm_arena,
+                                          state->renderer->device, state->things,
+                                          &map, state->enemy_model);
+
+  s32 enemy_i = 0;
+  for (auto &thing : *state->things) {
+    if (thing.kind == frag::ThingKind::Enemy)
+      thing.timer = 0.4f + enemy_i++ * 0.35f;
+  }
+}
+
+priv void LoadSharedModels(State *state) {
+  auto scratch = Scratch();
+  auto *device = state->renderer->device;
+
+  auto *enemy_model = Push<frag::Model>(state->perm_arena);
+  auto enemy_path =
+      WithBasePath(scratch.arena, Str8Lit("assets/models/cube.glb"));
+  if (LoadGlb(state->perm_arena, device, enemy_path, enemy_model))
+    state->enemy_model = enemy_model;
+  else
+    SDL_Log("Failed to load model: %s", enemy_path.data);
+
+  auto *bullet_model = Push<frag::Model>(state->perm_arena);
+  auto bullet_path =
+      WithBasePath(scratch.arena, Str8Lit("assets/models/bullet.glb"));
+  if (!LoadGlb(state->perm_arena, device, bullet_path, bullet_model)) {
+    SDL_Log("Failed to load model: %s", bullet_path.data);
+    return;
+  }
+
+  state->bullet_model = bullet_model;
+  glm::vec3 extent = bullet_model->bounds.max - bullet_model->bounds.min;
+  f32 longest = glm::max(extent.x, glm::max(extent.y, extent.z));
+  f32 scale = longest > 0.0001f ? BULLET_LENGTH / longest : 1.f;
+  state->bullet_scale = glm::vec3(scale);
+
+  state->bullet_colliders = NewArray<frag::AABB>(state->perm_arena, 1);
+  frag::AABB col{
+      .min = bullet_model->bounds.min * scale,
+      .max = bullet_model->bounds.max * scale,
+  };
+  glm::vec3 pad(0.02f);
+  col.min -= pad;
+  col.max += pad;
+  state->bullet_colliders.data[0] = col;
 }
 
 void Init(State *state) {
   state->cam_pitch = 0.0f;
   state->cam_yaw = 3.14159265f;
+  state->bullet_scale = glm::vec3(1.f);
+
+  LoadSharedModels(state);
 
   auto scratch = Scratch();
   SetMap(state, WithBasePath(scratch.arena, Str8Lit("assets/maps/test_map.map")));
@@ -170,7 +346,12 @@ void Init(State *state) {
   state->cam_yaw = player.rot.y;
 }
 
-void Update(State *state, f32 dt) { Movement(state, dt); }
+void Update(State *state, f32 dt) {
+  Movement(state, dt);
+  PlayerShoot(state, dt);
+  UpdateEnemies(state, dt);
+  UpdateProjectiles(state, dt);
+}
 
 void HandleEvent(State *state, SDL_Event *event) {
   switch (event->type) {

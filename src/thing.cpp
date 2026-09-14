@@ -54,6 +54,10 @@ Thing &Get(Things *things, Ref ref) {
   return things->slots[Deref(things, ref)];
 }
 
+Ref MakeRef(Things *things, s32 idx) {
+  return {.idx = idx, .gen = things->gen[idx]};
+}
+
 void Rem(Things *things, Ref ref) {
   if (s32 slot = Deref(things, ref)) {
     things->used[slot] = false;
@@ -73,8 +77,14 @@ void Rem(Things *things, Ref ref) {
 }
 
 MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device,
-                              Things *things, Map *map) {
+                              Things *things, Map *map, Model *enemy_model) {
   MapRefs refs{};
+  Array<AABB> enemy_colliders{};
+  if (enemy_model) {
+    enemy_colliders = NewArray<AABB>(arena, 1);
+    enemy_colliders.data[0] = enemy_model->bounds;
+  }
+
   for (auto &entity : map->entities) {
     auto ref = Add(things);
     auto &thing = Get(things, ref);
@@ -100,14 +110,10 @@ MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device,
           AABB{.min = {-16.f, -16.f, -24.f}, .max = {16.f, 16.f, 32.f}},
           MAP_SCALE);
     } else if (thing.kind == ThingKind::Enemy) {
-      auto *model = Push<Model>(arena);
-      auto path = WithBasePath(arena, Str8Lit("assets/models/cube.glb"));
-      if (LoadGlb(arena, device, path, model)) {
-        thing.model = model;
-        thing.colliders = NewArray<AABB>(arena, 1);
-        thing.colliders.data[0] = model->bounds;
-      } else
-        SDL_Log("Failed to load model: %s", path.data);
+      if (enemy_model) {
+        thing.model = enemy_model;
+        thing.colliders = enemy_colliders;
+      }
     }
 
     if (String8 origin = EntityProperty(&entity, Str8Lit("origin"));

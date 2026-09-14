@@ -19,6 +19,12 @@ priv constexpr f32 GROUNDED_HEIGHT = 0.01;
 priv constexpr f32 FRICTION = 2.0;
 priv constexpr f32 VIEW_HEIGHT = 0.22;
 priv constexpr f32 FOV = 90.0f;
+priv constexpr f32 BULLET_SPEED = 8.0f;
+priv constexpr f32 BULLET_LIFETIME = 4.0f;
+priv constexpr f32 BULLET_LENGTH = 0.12f;
+priv constexpr f32 BULLET_SPAWN_OFFSET = 0.4f;
+priv constexpr f32 PLAYER_FIRE_INTERVAL = 0.35f;
+priv constexpr f32 ENEMY_FIRE_INTERVAL = 1.2f;
 
 struct State {
   Arena *perm_arena;
@@ -33,7 +39,13 @@ struct State {
   glm::vec3 cam_pos;
   f32 cam_pitch;
   f32 cam_yaw;
-	frag::MapRefs map_refs;
+  frag::MapRefs map_refs;
+
+  frag::Model *enemy_model;
+  frag::Model *bullet_model;
+  glm::vec3 bullet_scale;
+  Array<frag::AABB> bullet_colliders;
+  f32 player_fire_cd;
 };
 
 void Init(State *state);

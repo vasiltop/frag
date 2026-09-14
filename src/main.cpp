@@ -20,8 +20,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
           .renderer = renderer,
           .things = things,
           .proj_mat = glm::perspectiveRH_ZO(
-              glm::radians(game::FOV), (f32)renderer->width / (f32)renderer->height,
-              0.1f, 100.f),
+              glm::radians(game::FOV),
+              (f32)renderer->width / (f32)renderer->height, 0.1f, 100.f),
       });
 
   game::Init(state);
@@ -52,7 +52,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     delta_time = (f32)(current_tick - state->last_tick) / 1000.f;
   }
 
-	SDL_Log("Frame time: %f", delta_time);
+  // SDL_Log("Frame time: %f", delta_time);
   state->last_tick = current_tick;
 
   game::Update(state, delta_time);

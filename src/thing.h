@@ -17,12 +17,14 @@ enum class ThingKind : u8 { Nil, Map, Player, Enemy, Projectile };
 
 struct Thing {
   ThingKind kind;
+  ThingKind owner;
   glm::vec3 pos;
   glm::vec3 rot;
   glm::vec3 vel;
   glm::vec3 scale;
   Array<AABB> colliders;
   Model *model;
+  f32 timer;
 };
 
 struct Things {
@@ -60,8 +62,10 @@ struct MapRefs {
 void Init(Things *things);
 Ref Add(Things *things);
 Thing &Get(Things *things, Ref ref);
+Ref MakeRef(Things *things, s32 idx);
 void Rem(Things *things, Ref ref);
-MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device, Things *things, Map *map);
+MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device,
+                              Things *things, Map *map, Model *enemy_model);
 b32 Collision(Thing &a, Thing &b);
 
 } // namespace frag
