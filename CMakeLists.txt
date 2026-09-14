@@ -53,11 +53,14 @@ add_executable(frag_tests
     tests/arena_test.cpp
     tests/thing_test.cpp
     tests/map_test.cpp
+    tests/physics_test.cpp
+    tests/nav_test.cpp
     src/base/mem.cpp
     src/base/string.cpp
     src/map.cpp
     src/thing.cpp
     src/physics.cpp
+    src/nav.cpp
     src/asset.cpp
     src/gpu.cpp)
 target_include_directories(frag_tests PRIVATE src tests vendor)

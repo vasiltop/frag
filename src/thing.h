@@ -25,6 +25,7 @@ struct Thing {
   Array<AABB> colliders;
   Model *model;
   f32 timer;
+  b32 alerted;
 };
 
 struct Things {

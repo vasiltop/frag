@@ -1,7 +1,9 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "base/array.h"
 #include "base/base.h"
+#include <cfloat>
+#include <glm/glm.hpp>
 
 namespace frag {
 
@@ -11,4 +13,8 @@ struct AABB {
 };
 
 b32 Collision(AABB a, AABB b);
-};
+b32 RayHitAABB(glm::vec3 origin, glm::vec3 dir, AABB box, f32 *t_hit);
+b32 SegmentBlocked(glm::vec3 a, glm::vec3 b, Array<AABB> colliders,
+                   glm::vec3 offset = {});
+
+} // namespace frag

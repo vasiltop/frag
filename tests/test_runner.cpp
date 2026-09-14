@@ -3,11 +3,15 @@
 void run_arena_tests();
 void run_thing_tests();
 void run_map_tests();
+void run_physics_tests();
+void run_nav_tests();
 
 int main() {
   run_arena_tests();
   run_thing_tests();
   run_map_tests();
+  run_physics_tests();
+  run_nav_tests();
 
   if (g_failed_tests > 0) {
     printf("%d/%d tests failed\n", g_failed_tests, g_test_count);

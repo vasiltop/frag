@@ -65,4 +65,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   return SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void *appstate, SDL_AppResult result) { SDL_Log("Quit"); }
+void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+  auto *state = static_cast<game::State *>(appstate);
+  if (state)
+    game::Shutdown(state);
+  SDL_Log("Quit");
+}
