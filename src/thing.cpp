@@ -79,32 +79,47 @@ MapRefs PopulateThingsFromMap(Arena *arena, SDL_GPUDevice *device,
     auto ref = Add(things);
     auto &thing = Get(things, ref);
 
-    if (Eq(entity.classname, Str8Lit("worldspawn"))) {
-      refs.map = ref;
+    thing.kind = ThingKind::Nil;
+    if (Eq(entity.classname, Str8Lit("worldspawn")))
       thing.kind = ThingKind::Map;
+    if (Eq(entity.classname, Str8Lit("info_player_start")))
+      thing.kind = ThingKind::Player;
+    if (Eq(entity.classname, Str8Lit("info_enemy_spawn")))
+      thing.kind = ThingKind::Enemy;
+
+    if (thing.kind == ThingKind::Map) {
+      refs.map = ref;
       thing.model = Push<Model>(arena);
       thing.scale = glm::vec3(MAP_SCALE, MAP_SCALE, MAP_SCALE);
       BuildMapModel(arena, device, &entity, thing.model, &thing.colliders);
-    } else if (Eq(entity.classname, Str8Lit("info_player_start"))) {
+    } else if (thing.kind == ThingKind::Player) {
       refs.player = ref;
-      thing.kind = ThingKind::Player;
 
       thing.colliders = NewArray<AABB>(arena, 1);
       thing.colliders.data[0] = QuakeToEngine(
           AABB{.min = {-16.f, -16.f, -24.f}, .max = {16.f, 16.f, 32.f}},
           MAP_SCALE);
-
-      if (String8 origin = EntityProperty(&entity, Str8Lit("origin"));
-          origin.size)
-        thing.pos = QuakeToEngine(ParseMapVec3(origin), MAP_SCALE);
-
-      if (String8 angles = EntityProperty(&entity, Str8Lit("angles"));
-          angles.size)
-        thing.rot = ParseMapAngles(angles);
-      else if (String8 angle = EntityProperty(&entity, Str8Lit("angle"));
-               angle.size)
-        thing.rot.y = ParseMapAngles(angle).x;
+    } else if (thing.kind == ThingKind::Enemy) {
+      auto *model = Push<Model>(arena);
+      auto path = WithBasePath(arena, Str8Lit("assets/models/cube.glb"));
+      if (LoadGlb(arena, device, path, model)) {
+        thing.model = model;
+        thing.colliders = NewArray<AABB>(arena, 1);
+        thing.colliders.data[0] = model->bounds;
+      } else
+        SDL_Log("Failed to load model: %s", path.data);
     }
+
+    if (String8 origin = EntityProperty(&entity, Str8Lit("origin"));
+        origin.size)
+      thing.pos = QuakeToEngine(ParseMapVec3(origin), MAP_SCALE);
+      
+    if (String8 angles = EntityProperty(&entity, Str8Lit("angles"));
+        angles.size)
+      thing.rot = ParseMapAngles(angles);
+    else if (String8 angle = EntityProperty(&entity, Str8Lit("angle"));
+             angle.size)
+      thing.rot.y = ParseMapAngles(angle).x;
   }
 
   return refs;

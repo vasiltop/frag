@@ -4,3 +4,4 @@ build-xcode/
 compile_commands.json
 tools/
 shaders/compiled/
+assets/maps/autosave/

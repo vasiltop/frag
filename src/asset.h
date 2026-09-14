@@ -16,6 +16,7 @@ struct Model {
   SDL_GPUBuffer *vertex_buffer;
   SDL_GPUBuffer *index_buffer;
   Array<SubMesh> sub_meshes;
+  AABB bounds;
 };
 
 constexpr auto vertices_per_face = 4;

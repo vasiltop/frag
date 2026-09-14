@@ -216,7 +216,8 @@ b32 Render(Renderer *renderer, Things *things, glm::mat4 proj_mat,
   SDL_BindGPUGraphicsPipeline(render_pass, renderer->pipeline);
 
   for (auto &thing : *things) {
-    if (!thing.model)
+    if (!thing.model || !thing.model->vertex_buffer ||
+        !thing.model->index_buffer)
       continue;
 
     SDL_GPUBufferBinding vertex_buffers[] = {SDL_GPUBufferBinding{

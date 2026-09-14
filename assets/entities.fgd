@@ -1,0 +1,9 @@
+@PointClass color(0 255 0) size(-16 -16 -24, 16 16 32) = info_player_start : "Player spawn point" 
+[
+    angles(string) : "Angles (Pitch Yaw Roll)" : "0 0 0"
+]
+
+@PointClass color(255 0 0) size(-16 -16 -24, 16 16 32) = info_enemy_spawn : "Enemy spawn point" 
+[
+    angles(string) : "Angles (Pitch Yaw Roll)" : "0 0 0"
+]

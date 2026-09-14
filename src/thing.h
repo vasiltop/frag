@@ -13,7 +13,7 @@ struct Ref {
   s32 gen;
 };
 
-enum class ThingKind : u8 { None, Map, Player };
+enum class ThingKind : u8 { Nil, Map, Player, Enemy, Projectile };
 
 struct Thing {
   ThingKind kind;

@@ -82,14 +82,19 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
 
   cgltf_result result =
       cgltf_parse_file(&options, (char *)filename.data, &data);
-  if (result != cgltf_result_success)
+  if (result != cgltf_result_success) {
+    SDL_Log("Failed to parse glb %s (cgltf %d)", filename.data, (int)result);
     return false;
+  }
 
   defer { cgltf_free(data); };
 
   result = cgltf_load_buffers(&options, data, (char *)filename.data);
-  if (result != cgltf_result_success)
+  if (result != cgltf_result_success) {
+    SDL_Log("Failed to load glb buffers %s (cgltf %d)", filename.data,
+            (int)result);
     return false;
+  }
 
   SDL_GPUTexture *texture = nullptr;
 
@@ -144,6 +149,7 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
   Vertex *vertices = PushCount<Vertex>(scratch.arena, vertex_count);
   u32 *indices =
       index_count > 0 ? PushCount<u32>(scratch.arena, index_count) : nullptr;
+  AABB bounds{};
 
   for (u64 j = 0; j < vertex_count; ++j) {
     vertices[j] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
@@ -161,6 +167,9 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
         vertices[j].x = val[0];
         vertices[j].y = val[1];
         vertices[j].z = val[2];
+        glm::vec3 p{val[0], val[1], val[2]};
+        bounds.min = glm::min(bounds.min, p);
+        bounds.max = glm::max(bounds.max, p);
       } else if (attr->type == cgltf_attribute_type_color) {
         f32 val[4];
         cgltf_accessor_read_float(acc, j, val, 4);
@@ -198,6 +207,7 @@ b32 LoadGlb(Arena *arena, SDL_GPUDevice *device, String8 filename, Model *out) {
                           : nullptr;
   out->sub_meshes = NewArray<SubMesh>(arena, 1);
   out->sub_meshes[0] = {texture, 0, (u32)index_count};
+  out->bounds = bounds;
 
   return true;
 }
